@@ -1,0 +1,76 @@
+@startuml
+skinparam componentStyle uml2
+skinparam backgroundColor white
+skinparam component {
+  BackgroundColor lightblue
+  BorderColor black
+}
+
+title Diagrama de Componentes - OrganiRack+ (Estructura Vertical Clave)
+
+package "Capa de Presentación (Frontend)" {
+
+    node "Dispositivo Móvil (Almacenista)" {
+        component "App Móvil (Expo / React Native)" as AppMovil {
+            component "AuthContext\n(SecureStore + Bearer token)" as AuthMovil
+            component "scannerScreen\n(cameraElement / inputUbicacion)" as Scanner
+            component "availabilityChecker\n(Verifica stock en estante)" as ValidadorUI
+            component "overrideScreen\n(Estante alternativo + justificación)" as OverrideUI
+
+            Scanner --> ValidadorUI
+            ValidadorUI <-> OverrideUI : "Sin stock en estante sugerido"
+        }
+    }
+
+    node "Navegador Web (Administrador / Capturista)" {
+        component "Dashboard Web (React + TypeScript + Vite)" as AppWeb {
+            component "Login · ForgotPassword\n(Ingreso por username)" as AuthWeb
+            component "GestionProductos · GestionUsuarios\nMapaAlmacen · InventarioGlobal" as CatWeb
+            component "GestionSurtidos\n(crear, asignar, cambiar estado)" as GestorOrdenes
+            component "BitacoraAuditoria · AuditoriaOverrides\nReporteDiscrepancias" as MonitorWeb
+        }
+    }
+}
+
+package "Capa de Negocio (Backend - Laravel 11)" {
+    interface "API REST\n(HTTPS / JSON + Bearer)" as APIGateway
+
+    component "Motor Principal (Picking y Surtido)" as MotorPicking {
+        component "AuthService\n(AuthController · UserController)" as AuthSvc
+        component "PickingService · OrderService\n(MobilePickingController · OrderController)" as PickingSvc
+        component "LocationService · InventoryService\n(LocationController · InventoryController)" as LocationSvc
+        component "AuditService\n(AuditController · AuditOverrideController)" as AuditoriaSvc
+    }
+
+    APIGateway -down- AuthSvc
+    APIGateway -down- PickingSvc
+    APIGateway -down- LocationSvc
+    APIGateway -down- AuditoriaSvc
+}
+
+package "Capa de Datos (Persistencia)" {
+    database "MySQL (OrganiRack DB)" as BD {
+        frame "Gestor Transaccional (ACID)" {
+            component "users · roles · permissions\n(Sanctum + Spatie Permission)" as UsuariosBD
+            component "almacenes → pasillos → racks → estantes\nproductos · inventarios · órdenes · detalles" as NodosBD
+        }
+        component "audit_logs (movimientos de negocio)\nactivity_log (Spatie ActivityLog)" as LogsBD
+    }
+}
+
+' Relaciones Frontend → API
+AuthMovil   ..> APIGateway : "POST /api/login"
+AuthWeb     ..> APIGateway : "Login / Valida roles (RBAC)"
+ValidadorUI ..> APIGateway : "GET /api/mobile/picking/availability"
+OverrideUI  ..> APIGateway : "POST /api/mobile/picking/override"
+CatWeb      ..> APIGateway : "CRUD Productos / Estructura física"
+GestorOrdenes ..> APIGateway : "Crea / Asigna órdenes de surtido"
+MonitorWeb  ..> APIGateway : "Consulta audit_logs / overrides"
+
+' Relaciones Backend → BD
+AuthSvc      --> UsuariosBD : "Verifica usuarios y roles"
+PickingSvc   --> NodosBD    : "Descuenta stock / actualiza orden"
+LocationSvc  --> NodosBD    : "Verifica stock en estante"
+AuditoriaSvc --> LogsBD     : "Registra movimiento / override"
+
+@enduml

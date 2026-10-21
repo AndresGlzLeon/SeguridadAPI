@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+
+class AuthService
+{
+    /**
+     * Verifica las credenciales del usuario.
+     *
+     * @param string $username
+     * @param string $password
+     * @param array|string $rolesExpected
+     * @return User
+     * @throws ValidationException
+     */
+    public function verifyCredentials(string $username, string $password, array|string $rolesExpected): User
+    {
+        // Buscar usuario por username
+        $user = User::where('username', $username)->first();
+
+        // Validar que el usuario existe
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'username' => 'Credenciales incorrectas o rol no autorizado.',
+            ]);
+        }
+
+        // Validar que la contraseña es correcta
+        if (!Hash::check($password, $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => 'Credenciales incorrectas o rol no autorizado.',
+            ]);
+        }
+
+        // Validar que el usuario esté activo
+        if (!$user->is_active) {
+            throw ValidationException::withMessages([
+                'username' => 'Tu cuenta ha sido desactivada. Contacta al administrador.',
+            ]);
+        }
+
+        // Convertir a array si es string
+        $roles = is_array($rolesExpected) ? $rolesExpected : [$rolesExpected];
+
+        // Validar que el usuario tiene al menos uno de los roles esperados
+        if (!$user->hasAnyRole($roles)) {
+            throw ValidationException::withMessages([
+                'username' => 'Credenciales incorrectas o rol no autorizado.',
+            ]);
+        }
+
+        return $user;
+    }
+}

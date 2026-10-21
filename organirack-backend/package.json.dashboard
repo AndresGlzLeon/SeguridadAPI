@@ -1,0 +1,21 @@
+{
+  "name": "organirack-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "OrganiRackPlus Frontend Dashboard",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .js,.vue"
+  },
+  "dependencies": {
+    "vue": "^3.3.4",
+    "axios": "^1.4.0",
+    "chart.js": "^4.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.3",
+    "vite": "^4.4.5"
+  }
+}

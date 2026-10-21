@@ -1,0 +1,28 @@
+:root {
+  --rack-dark: #0F111A;
+  --rack-sidebar: #161925;
+  --rack-purple: #8B5CF6;
+  --rack-cyan: #2DD4BF;
+  --rack-border: #1E2235;
+  --rack-muted: #94a3b8;
+  --rack-surface: #0F111A;
+  --rack-glow: rgba(139,92,246,0.18);
+}
+
+/* Utility helpers for legacy CSS usage */
+.bg-rack-dark { background-color: var(--rack-dark) !important; }
+.bg-rack-sidebar { background-color: var(--rack-sidebar) !important; }
+.text-rack-purple { color: var(--rack-purple) !important; }
+.text-rack-cyan { color: var(--rack-cyan) !important; }
+.border-rack-border { border-color: var(--rack-border) !important; }
+.ring-rack-purple { box-shadow: 0 0 0 4px rgba(139,92,246,0.08); }
+
+/* Small helpers used across views */
+.card-surface { background-color: rgba(255,255,255,0.02); border: 1px solid var(--rack-border); border-radius: 12px; }
+.btn-cyan { background-color: rgba(45,212,191,0.06); color: var(--rack-cyan); border: 1px solid rgba(45,212,191,0.16); padding: 6px 10px; border-radius: 8px; }
+
+/* Darken/Lighten helpers */
+.muted { color: var(--rack-muted); }
+
+/* Provide a small helper for glow/shadow matching UI */
+.glow-purple { box-shadow: 0 6px 20px var(--rack-glow); }
