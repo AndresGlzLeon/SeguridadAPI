@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Services\OrderService;
 use App\Models\OrdenSurtido;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -112,24 +113,30 @@ class OrderController extends Controller
      * Obtiene una orden de surtido específica con todos sus detalles.
      * GET /api/orders/{order}
      *
-     * @param int $order ID de la orden
+     * Protección BOLA/IDOR: se valida mediante OrdenSurtidoPolicy que el
+     * usuario autenticado sea el propietario del recurso (capturista_id),
+     * o bien que tenga un rol privilegiado (Administrador / Gerencia de Operaciones).
+     *
+     * @param OrdenSurtido $order Resuelto automáticamente via route model binding
      * @return JsonResponse
      */
-    public function show(int $order): JsonResponse
+    public function show(OrdenSurtido $order): JsonResponse
     {
         try {
-            $orden = $this->orderService->getOrderById($order);
+            // IDOR check: delega en OrdenSurtidoPolicy::view()
+            $this->authorize('view', $order);
 
-            if (!$orden) {
-                return response()->json([
-                    'message' => 'Orden de surtido no encontrada',
-                ], 404);
-            }
+            $orden = $this->orderService->getOrderById($order->id);
 
             return response()->json([
                 'message' => 'Orden de surtido obtenida correctamente',
                 'data' => $orden,
             ], 200);
+
+        } catch (AuthorizationException) {
+            return response()->json([
+                'error' => 'Protección IDOR: No tienes permiso para acceder a este recurso',
+            ], 403);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -143,18 +150,25 @@ class OrderController extends Controller
      * Asigna un almacenista a una orden de surtido.
      * PUT /api/orders/{id}/assign
      *
+     * Protección BOLA/IDOR: se valida mediante OrdenSurtidoPolicy que el
+     * usuario autenticado sea el capturista propietario de la orden, o tenga
+     * un rol privilegiado (Administrador / Gerencia de Operaciones).
+     *
      * Body (JSON):
      * {
      *   "almacenista_id": 5
      * }
      *
-     * @param int $id ID de la orden
+     * @param OrdenSurtido $order Resuelto automáticamente via route model binding
      * @param Request $request
      * @return JsonResponse
      */
-    public function assign(int $id, Request $request): JsonResponse
+    public function assign(OrdenSurtido $order, Request $request): JsonResponse
     {
         try {
+            // IDOR check: delega en OrdenSurtidoPolicy::update()
+            $this->authorize('update', $order);
+
             $validated = $request->validate([
                 'almacenista_id' => 'required|integer|exists:users,id',
             ], [
@@ -163,16 +177,21 @@ class OrderController extends Controller
             ]);
 
             \Log::info('👤 Asignando almacenista a orden:', [
-                'orden_id' => $id,
+                'orden_id' => $order->id,
                 'almacenista_id' => $validated['almacenista_id'],
             ]);
 
-            $orden = $this->orderService->assignAlmacenista($id, $validated['almacenista_id']);
+            $orden = $this->orderService->assignAlmacenista($order->id, $validated['almacenista_id']);
 
             return response()->json([
                 'message' => 'Almacenista asignado correctamente',
                 'data' => $orden,
             ], 200);
+
+        } catch (AuthorizationException) {
+            return response()->json([
+                'error' => 'Protección IDOR: No tienes permiso para acceder a este recurso',
+            ], 403);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([

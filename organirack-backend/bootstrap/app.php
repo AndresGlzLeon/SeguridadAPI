@@ -20,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+            // API Key validation middleware (Seguridad - Punto 1)
+            'api.key'  => \App\Http\Middleware\ApiKeyMiddleware::class,
         ]);
 
         //

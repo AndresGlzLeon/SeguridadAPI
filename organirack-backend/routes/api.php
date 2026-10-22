@@ -103,13 +103,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ->names([
             'index' => 'orders.index',
             'store' => 'orders.store',
-            'show' => 'orders.show',
+            'show'  => 'orders.show',
         ]);
-    
+
     // Endpoint para asignar almacenista a una orden
-    Route::put('/orders/{id}/assign', [OrderController::class, 'assign'])
+    // Nota: {order} usa route model binding => resuelve OrdenSurtido automáticamente
+    Route::put('/orders/{order}/assign', [OrderController::class, 'assign'])
         ->name('orders.assign');
-    
+
     // Endpoint para generar PDF (Vale de Salida / Remisión de Surtido)
     Route::get('/orders/{id}/pdf', [OrderController::class, 'generatePdf'])
         ->name('orders.pdf');
@@ -265,3 +266,36 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('test.dashboard.debug-error');
     });
 });
+
+/**
+ * SECURITY TEST ROUTES (Puntos 1 y 2 de la rúbrica de seguridad)
+ *
+ * Agrupa los endpoints de prueba bajo:
+ *  - auth:sanctum  → requiere token Sanctum válido
+ *  - api.key       → valida el header X-API-KEY (ApiKeyMiddleware)
+ *  - throttle:3,1  → máximo 3 peticiones por minuto (Rate Limiter anti-fuerza bruta)
+ *
+ * Uso de prueba:
+ *   GET /api/security/status  → Headers: Authorization: Bearer {token}, X-API-KEY: organirack_secreto_123
+ *   GET /api/security/ping    → Headers: Authorization: Bearer {token}, X-API-KEY: organirack_secreto_123
+ */
+Route::prefix('security')
+    ->middleware(['auth:sanctum', 'api.key', 'throttle:3,1'])
+    ->group(function () {
+        // Punto 1: Verifica que el middleware ApiKeyMiddleware esté activo
+        Route::get('/status', function () {
+            return response()->json([
+                'status'  => 'ok',
+                'message' => 'API Key válida. Acceso autorizado.',
+                'user'    => auth()->user()?->name,
+            ]);
+        })->name('security.status');
+
+        // Punto 2: Verifica el Rate Limiter (throttle:3,1 → máx. 3 req/min)
+        Route::get('/ping', function () {
+            return response()->json([
+                'pong'    => true,
+                'message' => 'Rate limiter activo. Máximo 3 peticiones por minuto.',
+            ]);
+        })->name('security.ping');
+    });

@@ -120,7 +120,16 @@ return [
 
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
-        'store' => env('APP_MAINTENANCE_STORE', 'database'),
+        'store'  => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | API Key (Seguridad - Punto 1)
+    |--------------------------------------------------------------------------
+    | Clave estática utilizada por ApiKeyMiddleware para validar el header
+    | X-API-KEY en las rutas protegidas. Configurable desde .env.
+    */
+    'api_key' => env('API_KEY', 'organirack_secreto_123'),
 
 ];

@@ -1,4 +1,0 @@
-allowBuilds:
-  '@tailwindcss/oxide': false
-  core-js: false
-  esbuild: false
