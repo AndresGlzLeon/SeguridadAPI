@@ -788,14 +788,19 @@
             let note = '';
 
             if (res.status === 429) {
-                note = `PETICIÓN #${i}/${totalRequests} BLOQUEADA (429 Too Many Requests): El Rate Limiter cortó la conexión.`;
+                note = `🛑 PETICIÓN #${i}/${totalRequests} BLOQUEADA (429 Too Many Requests): El Rate Limiter cortó la conexión.`;
             } else if (throttleOn === 'off') {
-                note = `Petición #${i}/${totalRequests} sin Rate Limiter: consulta pesada a MySQL ejecutada sin restricción.`;
+                note = `⚠️ Petición #${i}/${totalRequests} sin Rate Limiter: consulta pesada a MySQL ejecutada sin restricción.`;
             } else {
-                note = `Petición #${i}/${totalRequests} permitida (dentro del límite de 3 req/min).`;
+                note = `✅ Petición #${i}/${totalRequests} permitida (dentro del límite de 3 req/min).`;
             }
 
-            logCard(`Rate Limiter — req #${i}/${totalRequests}`, 'GET', url, display, res.status, data, note, throttleOn === 'off' && i > 3);
+            // Si está sin control, marcamos todas como vulnerables. Si tiene control, marcamos rojas a partir de la 4.
+            const isVulnerable = throttleOn === 'off' || res.status === 429;
+            logCard(`Rate Limiter — req #${i}/${totalRequests}`, 'GET', url, display, res.status, data, note, isVulnerable);
+            
+            // Micro-pausa de 50ms para permitir que el navegador dibuje la tarjeta sin congelar la pantalla
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
 
