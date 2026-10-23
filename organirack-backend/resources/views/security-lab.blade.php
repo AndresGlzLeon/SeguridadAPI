@@ -6,1687 +6,783 @@
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>API Security Lab — OrganiRack+</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" />
     <style>
-        /* =============================================
-           DESIGN TOKENS — SECURITY LAB THEME
-        ============================================= */
         :root {
-            --bg-base:       #0a0d14;
-            --bg-panel:      #0f1320;
-            --bg-card:       #141928;
-            --bg-input:      #1a2035;
-            --bg-hover:      #1e2740;
-            --border:        #1f2d4a;
-            --border-bright: #2a3f6a;
-            --accent-blue:   #3b7fff;
-            --accent-cyan:   #00d4ff;
-            --accent-green:  #00e88a;
-            --accent-yellow: #ffc845;
-            --accent-red:    #ff4560;
-            --accent-purple: #9b59f5;
-            --accent-orange: #ff8c42;
-            --text-primary:  #e4eaf6;
-            --text-secondary:#8899bb;
-            --text-muted:    #4a5a7a;
-            --status-ok:     #00e88a;
-            --status-warn:   #ffc845;
-            --status-error:  #ff4560;
-            --glow-blue:     0 0 20px rgba(59,127,255,0.25);
-            --glow-green:    0 0 20px rgba(0,232,138,0.25);
-            --glow-red:      0 0 20px rgba(255,69,96,0.25);
-            --glow-yellow:   0 0 20px rgba(255,200,69,0.25);
-            --radius-sm:     6px;
-            --radius-md:     10px;
-            --radius-lg:     14px;
+            --bg-main: #090d16;
+            --bg-panel: #0f1523;
+            --bg-card: #151d30;
+            --border: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --accent-blue: #2563eb;
+            --status-ok: #10b981;
+            --status-error: #ef4444;
+            --status-warn: #f59e0b;
         }
-
-        /* =============================================
-           RESET & BASE
-        ============================================= */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background: var(--bg-base);
-            color: var(--text-primary);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
             height: 100vh;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
-
-        /* =============================================
-           TOP BAR
-        ============================================= */
-        #topbar {
+        header {
+            height: 60px;
             background: var(--bg-panel);
             border-bottom: 1px solid var(--border);
-            padding: 0 20px;
-            height: 60px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-            position: relative;
-            z-index: 10;
+            padding: 0 20px;
+            gap: 24px;
         }
-
-        #topbar .brand {
+        .brand {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-right: 20px;
+            padding-right: 20px;
+            border-right: 1px solid var(--border);
         }
-
-        #topbar .brand .logo-icon {
+        .logo-box {
             width: 32px;
             height: 32px;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-            border-radius: var(--radius-sm);
+            background: var(--accent-blue);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 16px;
         }
-
-        #topbar .brand h1 {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text-primary);
-            letter-spacing: 0.5px;
-        }
-
-        #topbar .brand span {
+        .brand h1 { font-size: 16px; font-weight: 700; }
+        .badge-version {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--status-ok);
             font-size: 11px;
-            color: var(--accent-cyan);
-            font-family: 'JetBrains Mono', monospace;
             font-weight: 600;
-            background: rgba(0,212,255,0.1);
-            padding: 2px 8px;
-            border-radius: 20px;
-            border: 1px solid rgba(0,212,255,0.2);
+            padding: 3px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
-
-        #topbar .divider {
-            width: 1px;
-            height: 28px;
-            background: var(--border);
-            margin: 0 8px;
-        }
-
+        .scenarios-nav { display: flex; gap: 10px; flex-wrap: wrap; }
         .scenario-btn {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            padding: 8px 14px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border);
             background: var(--bg-card);
-            color: var(--text-secondary);
-            font-family: 'Inter', sans-serif;
-            font-size: 12.5px;
-            font-weight: 500;
+            border: 1px solid var(--border);
+            color: #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .scenario-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--border-bright);
-            color: var(--text-primary);
-            transform: translateY(-1px);
-        }
-
-        .scenario-btn.active {
-            border-color: var(--accent-blue);
-            background: rgba(59,127,255,0.12);
-            color: var(--accent-blue);
-            box-shadow: var(--glow-blue);
-        }
-
-        .scenario-btn .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .btn-v1 .dot { background: var(--text-muted); }
-        .btn-v2 .dot { background: var(--accent-yellow); }
-        .btn-v3 .dot { background: var(--accent-green); }
-        .btn-v4 .dot { background: var(--accent-red); }
-        .btn-v5 .dot { background: var(--accent-orange); }
-
-        .btn-v1.active { border-color: var(--text-secondary); background: rgba(136,153,187,0.1); color: var(--text-primary); box-shadow: none; }
-        .btn-v2.active { border-color: var(--accent-yellow); background: rgba(255,200,69,0.1); color: var(--accent-yellow); box-shadow: var(--glow-yellow); }
-        .btn-v3.active { border-color: var(--accent-green); background: rgba(0,232,138,0.1); color: var(--accent-green); box-shadow: var(--glow-green); }
-        .btn-v4.active { border-color: var(--accent-red); background: rgba(255,69,96,0.1); color: var(--accent-red); box-shadow: var(--glow-red); }
-        .btn-v5.active { border-color: var(--accent-orange); background: rgba(255,140,66,0.1); color: var(--accent-orange); box-shadow: 0 0 20px rgba(255,140,66,0.25); }
-
-        .spacer { flex: 1; }
-
-        #live-indicator {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: var(--text-muted);
-            font-family: 'JetBrains Mono', monospace;
+            gap: 8px;
+            transition: all 0.2s;
         }
-
-        #live-indicator .pulse {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--accent-green);
-            animation: pulse-anim 2s infinite;
+        .scenario-btn:hover { border-color: #475569; color: #fff; }
+        .scenario-btn.active {
+            background: rgba(37, 99, 235, 0.2);
+            border-color: var(--accent-blue);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.3);
         }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dot-v1 { background: #64748b; }
+        .dot-v2 { background: #f59e0b; }
+        .dot-v3 { background: #10b981; }
+        .dot-v4 { background: #ef4444; }
+        .dot-v5 { background: #f97316; }
 
-        @keyframes pulse-anim {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.8); }
-        }
-
-        /* =============================================
-           MAIN LAYOUT
-        ============================================= */
-        #main {
+        .workspace {
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 350px 1fr;
             flex: 1;
             overflow: hidden;
         }
-
-        /* =============================================
-           LEFT PANEL — SESSION
-        ============================================= */
-        #left-panel {
+        aside {
             background: var(--bg-panel);
             border-right: 1px solid var(--border);
+            padding: 18px;
             display: flex;
             flex-direction: column;
+            gap: 18px;
             overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
         }
-
-        .panel-section {
-            padding: 16px;
-            border-bottom: 1px solid var(--border);
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-left: 3px solid var(--accent-blue);
+            padding-left: 8px;
+            margin-bottom: 10px;
         }
-
-        .panel-section:last-child { border-bottom: none; }
-
-        .scenario-summary {
-            background: rgba(59, 127, 255, 0.08);
-            border: 1px solid rgba(59, 127, 255, 0.25);
-            border-radius: var(--radius-md);
-            padding: 12px 10px;
-            margin: -4px 0 12px;
-        }
-
-        .scenario-summary .summary-head {
+        .auth-badge {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 6px;
-        }
-
-        .scenario-summary .summary-label {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 1.4px;
-            color: var(--accent-cyan);
-            text-transform: uppercase;
-        }
-
-        .scenario-summary .summary-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 28px;
-            height: 22px;
-            padding: 0 8px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: 700;
-            background: rgba(0, 212, 255, 0.14);
-            border: 1px solid rgba(0, 212, 255, 0.28);
-            color: var(--accent-cyan);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .scenario-summary p {
-            font-size: 11px;
-            line-height: 1.55;
-            color: var(--text-secondary);
-        }
-
-        .tiny-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: rgba(255,255,255,0.02);
-            color: var(--text-secondary);
-            padding: 4px 8px;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .section-title {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .section-title::before {
-            content: '';
-            display: block;
-            width: 3px;
-            height: 12px;
-            border-radius: 2px;
-            background: var(--accent-blue);
-        }
-
-        /* Auth status badge */
-        #auth-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: var(--radius-md);
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            margin-bottom: 12px;
-            font-size: 12px;
-        }
-
-        #auth-status .status-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: var(--status-error);
-            flex-shrink: 0;
-            transition: background 0.3s;
-        }
-
-        #auth-status.logged-in .status-dot { background: var(--status-ok); }
-
-        #auth-status .status-text {
-            color: var(--text-secondary);
-            flex: 1;
-        }
-
-        /* Form inputs */
-        .lab-input {
-            width: 100%;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            padding: 9px 12px;
-            outline: none;
-            transition: border-color 0.2s;
-            margin-bottom: 8px;
-        }
-
-        .lab-input:focus {
-            border-color: var(--accent-blue);
-            background: rgba(59,127,255,0.05);
-        }
-
-        .lab-input::placeholder { color: var(--text-muted); }
-
-        /* Quick-fill buttons */
-        .quick-fill-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
             margin-bottom: 10px;
         }
-
-        .quick-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 2px;
-            padding: 8px 10px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
+        .auth-badge.logged { border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); }
+        .quick-users {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .user-card {
             background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s;
             text-align: left;
+            transition: all 0.15s;
+        }
+        .user-card:hover { border-color: var(--accent-blue); }
+        .user-card .role-name { font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 5px; }
+        .user-card .user-mail { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+        .input-field, .select-field {
             width: 100%;
-        }
-
-        .quick-btn:hover {
-            border-color: var(--border-bright);
-            background: var(--bg-hover);
-            transform: translateY(-1px);
-        }
-
-        .quick-btn .qb-role {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .quick-btn .qb-email {
-            font-size: 10px;
-            color: var(--text-muted);
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 8px;
             font-family: 'JetBrains Mono', monospace;
         }
-
-        .quick-btn.admin .qb-role   { color: var(--accent-purple); }
-        .quick-btn.almac .qb-role  { color: var(--accent-cyan); }
-        .quick-btn.almac2 .qb-role { color: var(--accent-blue); }
-
-        /* Buttons */
-        .lab-btn {
+        .btn-primary {
             width: 100%;
-            padding: 10px 16px;
-            border-radius: var(--radius-sm);
-            border: none;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-        }
-
-        .lab-btn-primary {
-            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            background: var(--accent-blue);
             color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
         }
-
-        .lab-btn-primary:hover {
-            background: linear-gradient(135deg, #5b9fff, var(--accent-blue));
-            transform: translateY(-1px);
-            box-shadow: var(--glow-blue);
-        }
-
-        .lab-btn-danger {
-            background: rgba(255,69,96,0.15);
-            color: var(--accent-red);
-            border: 1px solid rgba(255,69,96,0.3);
+        .btn-danger {
+            width: 100%;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--status-error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
             margin-top: 6px;
         }
-
-        .lab-btn-danger:hover {
-            background: rgba(255,69,96,0.25);
-            transform: translateY(-1px);
-        }
-
-        /* Token display */
-        #token-display {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: var(--accent-green);
-            background: rgba(0,232,138,0.06);
-            border: 1px solid rgba(0,232,138,0.15);
-            border-radius: var(--radius-sm);
-            padding: 8px 10px;
-            word-break: break-all;
-            line-height: 1.5;
-            min-height: 40px;
-            max-height: 80px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            display: none;
-        }
-
-        #token-display.visible { display: block; }
-
-        /* Scenario config */
-        .config-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: var(--radius-sm);
+        .control-box {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            margin-bottom: 6px;
-            font-size: 11.5px;
-        }
-
-        .mode-switch {
+            border-radius: 10px;
+            padding: 12px;
             display: flex;
-            gap: 6px;
-            flex: 1;
-            min-width: 0;
+            flex-direction: column;
+            gap: 10px;
         }
-
-        .mode-btn {
-            flex: 1 1 50%;
-            min-height: 32px;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text-secondary);
-            border-radius: 6px;
-            padding: 6px 8px;
-            font-size: 9.5px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .mode-btn:hover {
-            border-color: var(--border-bright);
-            color: var(--text-primary);
-        }
-
-        .mode-btn.active {
-            background: rgba(59, 127, 255, 0.14);
-            border-color: rgba(59, 127, 255, 0.35);
-            color: var(--accent-blue);
-            box-shadow: var(--glow-blue);
-        }
-
-        .state-grid {
+        .mode-presets {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 10px;
+            gap: 6px;
         }
-
-        .state-card {
-            background: var(--bg-card);
+        .preset-btn {
+            background: var(--bg-main);
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 10px 10px 8px;
-            min-height: 110px;
+            color: var(--text-muted);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
         }
-
-        .state-card.vulnerable {
-            border-color: rgba(255, 69, 96, 0.35);
-            background: rgba(255, 69, 96, 0.04);
+        .preset-btn.active-fail {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: var(--status-error);
+            color: #fca5a5;
         }
-
-        .state-card.protected {
-            border-color: rgba(0, 232, 138, 0.35);
-            background: rgba(0, 232, 138, 0.04);
+        .preset-btn.active-pass {
+            background: rgba(16, 185, 129, 0.18);
+            border-color: var(--status-ok);
+            color: #6ee7b7;
         }
-
-        .state-head {
+        .control-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .state-tag {
-            font-size: 9px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            padding: 4px 7px;
-            border-radius: 999px;
-            border: 1px solid transparent;
-        }
-
-        .state-card.vulnerable .state-tag {
-            background: rgba(255, 69, 96, 0.12);
-            color: var(--status-error);
-            border-color: rgba(255, 69, 96, 0.2);
-        }
-
-        .state-card.protected .state-tag {
-            background: rgba(0, 232, 138, 0.12);
-            color: var(--status-ok);
-            border-color: rgba(0, 232, 138, 0.2);
-        }
-
-        .state-card p {
-            margin: 0;
-            font-size: 10.5px;
-            line-height: 1.55;
-            color: var(--text-secondary);
-            word-break: break-word;
-            white-space: normal;
-        }
-
-        .config-row label {
-            color: var(--text-muted);
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-            width: 65px;
-            flex-shrink: 0;
-        }
-
-        .config-row .config-val {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--text-secondary);
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .config-toggle {
-            width: 30px;
-            height: 16px;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            padding: 8px 10px;
             border-radius: 8px;
-            border: none;
-            cursor: pointer;
+            font-size: 12px;
+        }
+        .control-label { font-size: 11px; font-weight: 600; color: #94a3b8; }
+        .control-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #cbd5e1; margin-top: 2px; }
+        .switch {
+            width: 38px;
+            height: 20px;
+            background: #334155;
+            border-radius: 20px;
             position: relative;
+            cursor: pointer;
+            border: none;
             transition: background 0.2s;
             flex-shrink: 0;
         }
-
-        .config-toggle::after {
+        .switch::after {
             content: '';
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #fff;
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.2s;
-        }
-
-        .config-toggle.on { background: var(--accent-green); }
-        .config-toggle.on::after { transform: translateX(14px); }
-        .config-toggle.off { background: var(--text-muted); }
-
-        .resource-input {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            padding: 4px 8px;
-            width: 70px;
-            outline: none;
-        }
-
-        .resource-input:focus { border-color: var(--accent-blue); }
-
-        /* Execute button */
-        #execute-btn {
-            width: 100%;
-            padding: 12px;
-            border-radius: var(--radius-md);
-            border: none;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-            color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-            letter-spacing: 0.3px;
-        }
-
-        #execute-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(59,127,255,0.4);
-        }
-
-        #execute-btn:active { transform: translateY(0); }
-
-        #execute-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* =============================================
-           RIGHT PANEL — CONSOLE
-        ============================================= */
-        #right-panel {
-            background: var(--bg-base);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        #console-header {
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
-        .console-dots {
-            display: flex;
-            gap: 6px;
-        }
-
-        .console-dots span {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .console-dots .d1 { background: #ff5f57; }
-        .console-dots .d2 { background: #febe2d; }
-        .console-dots .d3 { background: #2ac940; }
-
-        #console-title {
-            font-size: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-secondary);
-        }
-
-        .spacer { flex: 1; }
-
-        #clear-console-btn {
-            font-size: 11px;
-            color: var(--text-muted);
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.2s;
-        }
-
-        #clear-console-btn:hover {
-            color: var(--text-secondary);
-            border-color: var(--border-bright);
-        }
-
-        #console-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12.5px;
-            line-height: 1.7;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
-        }
-
-        /* Console entries */
-        .console-entry {
-            margin-bottom: 24px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .entry-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .entry-timestamp {
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-
-        .entry-scenario {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            padding: 2px 8px;
-            border-radius: 20px;
-        }
-
-        .status-badge {
-            font-size: 13px;
-            font-weight: 700;
-            padding: 3px 12px;
-            border-radius: var(--radius-sm);
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .status-2xx { background: rgba(0,232,138,0.15); color: var(--status-ok); border: 1px solid rgba(0,232,138,0.3); }
-        .status-3xx { background: rgba(59,127,255,0.15); color: var(--accent-blue); border: 1px solid rgba(59,127,255,0.3); }
-        .status-4xx { background: rgba(255,69,96,0.15); color: var(--status-error); border: 1px solid rgba(255,69,96,0.3); }
-        .status-429 { background: rgba(255,140,66,0.15); color: var(--accent-orange); border: 1px solid rgba(255,140,66,0.3); }
-
-        .section-block {
-            margin-bottom: 12px;
-        }
-
-        .block-label {
-            font-size: 9.5px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-
-        .block-content {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px;
-            overflow-x: auto;
-        }
-
-        .request-line {
-            color: var(--accent-cyan);
-            margin-bottom: 4px;
-        }
-
-        .header-line {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 2px;
-        }
-
-        .header-key   { color: var(--accent-yellow); }
-        .header-colon { color: var(--text-muted); }
-        .header-val   { color: var(--text-primary); }
-
-        .header-val.auth-val    { color: var(--accent-green); }
-        .header-val.apikey-val  { color: var(--accent-purple); }
-        .header-val.absent      { color: var(--status-error); font-style: italic; }
-
-        pre.json-output {
-            white-space: pre-wrap;
-            word-break: break-word;
-            color: var(--text-primary);
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .json-key      { color: #79c0ff; }
-        .json-string   { color: #a5d6ff; }
-        .json-number   { color: var(--accent-green); }
-        .json-bool     { color: var(--accent-orange); }
-        .json-null     { color: var(--text-muted); }
-
-        /* Error / info messages */
-        .console-msg {
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .console-msg.info    { background: rgba(59,127,255,0.08); color: var(--accent-blue); border: 1px solid rgba(59,127,255,0.2); }
-        .console-msg.error   { background: rgba(255,69,96,0.08); color: var(--status-error); border: 1px solid rgba(255,69,96,0.2); }
-        .console-msg.success { background: rgba(0,232,138,0.08); color: var(--status-ok); border: 1px solid rgba(0,232,138,0.2); }
-        .console-msg.warn    { background: rgba(255,200,69,0.08); color: var(--accent-yellow); border: 1px solid rgba(255,200,69,0.2); }
-
-        /* Spinner */
-        .spinner {
             width: 14px;
             height: 14px;
-            border: 2px solid rgba(59,127,255,0.3);
-            border-top-color: var(--accent-blue);
+            background: #fff;
             border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            display: inline-block;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s;
         }
+        .switch.on { background: var(--status-ok); }
+        .switch.on::after { transform: translateX(18px); }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Welcome screen */
-        #welcome-screen {
+        .order-input {
+            width: 65px;
+            background: var(--bg-card);
+            border: 1px solid #475569;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            text-align: center;
+        }
+        .execute-btn {
+            width: 100%;
+            background: linear-gradient(90deg, #0284c7, #2563eb);
+            color: #fff;
+            border: none;
+            padding: 13px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+        }
+        main {
             display: flex;
             flex-direction: column;
+            background: #060911;
+            overflow: hidden;
+        }
+        .console-header {
+            height: 42px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
             align-items: center;
-            justify-content: center;
-            height: 100%;
-            gap: 16px;
-            color: var(--text-muted);
-            text-align: center;
-            padding: 40px;
-        }
-
-        #welcome-screen .shield-icon {
-            font-size: 56px;
-            opacity: 0.3;
-        }
-
-        #welcome-screen h2 {
-            font-size: 20px;
-            font-weight: 300;
-            color: var(--text-secondary);
-        }
-
-        #welcome-screen p {
-            font-size: 13px;
-            max-width: 400px;
-            line-height: 1.6;
-        }
-
-        .steps-list {
-            text-align: left;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
-            line-height: 2;
+            color: var(--text-muted);
         }
-
-        .steps-list span {
-            display: block;
+        .win-dots { display: flex; gap: 6px; align-items: center; }
+        .win-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .clear-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
         }
+        #console-output {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .log-card {
+            background: #0d1322;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 14px;
+            line-height: 1.5;
+        }
+        .log-card.ok { border-left-color: var(--status-ok); }
+        .log-card.err { border-left-color: var(--status-error); }
+        .log-card.warn { border-left-color: var(--status-warn); }
 
-        .steps-list .step-done { color: var(--accent-green); }
-        .steps-list .step-todo { color: var(--text-muted); }
+        .log-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .badge-status { padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px; }
+        .badge-ok { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-err { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-warn { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        .headers-line { color: #94a3b8; font-size: 11px; margin-bottom: 8px; }
+        .missing-line { color: #fbbf24; font-size: 11px; margin-bottom: 8px; }
+        pre.json-box {
+            background: #060911;
+            border: 1px solid #1e293b;
+            padding: 10px;
+            border-radius: 6px;
+            color: #e2e8f0;
+            overflow-x: auto;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        .note-line { color: #38bdf8; font-size: 11px; }
     </style>
 </head>
 <body>
 
-<!-- ===================================================
-     TOP BAR — Scenario Buttons
-=================================================== -->
-<header id="topbar">
-    <div class="brand">
-        <div class="logo-icon">🔒</div>
-        <h1>OrganiRack+</h1>
-        <span>Security Lab v1.0</span>
+    <header>
+        <div class="brand">
+            <div class="logo-box">🔒</div>
+            <h1>OrganiRack+</h1>
+            <span class="badge-version">Security Lab v2.2</span>
+        </div>
+
+        <nav class="scenarios-nav">
+            <button class="scenario-btn" id="btn-v1" onclick="selectScenario('v1')"><span class="dot dot-v1"></span> V1 Sin Seguridad</button>
+            <button class="scenario-btn active" id="btn-v2" onclick="selectScenario('v2')"><span class="dot dot-v2"></span> V2 API Key (App)</button>
+            <button class="scenario-btn" id="btn-v3" onclick="selectScenario('v3')"><span class="dot dot-v3"></span> V3 Sanctum / JWT (Usuario)</button>
+            <button class="scenario-btn" id="btn-v4" onclick="selectScenario('v4')"><span class="dot dot-v4"></span> V4 BOLA/IDOR y Roles</button>
+            <button class="scenario-btn" id="btn-v5" onclick="selectScenario('v5')"><span class="dot dot-v5"></span> V5 Rate Limit (Catálogo Pesado)</button>
+        </nav>
+    </header>
+
+    <div class="workspace">
+        <aside>
+            <!-- SESIÓN -->
+            <div>
+                <div class="section-title">1. Identidad de Usuario (Sanctum)</div>
+                <div class="auth-badge" id="auth-badge">
+                    <span id="auth-text">🔴 Sin autenticar</span>
+                    <span id="auth-role" style="font-weight:700; color:#38bdf8;"></span>
+                </div>
+
+                <div class="quick-users">
+                    <div class="user-card" onclick="fillUser('admin@organirack.com', 'password')">
+                        <div class="role-name"><span style="color:#a855f7;">●</span> ADMIN</div>
+                        <div class="user-mail">Dueño de Orden #1</div>
+                    </div>
+                    <div class="user-card" onclick="fillUser('almacenista1@organirack.com', 'password')">
+                        <div class="role-name"><span style="color:#38bdf8;">●</span> ALMAC. 1</div>
+                        <div class="user-mail">No es dueño de #1</div>
+                    </div>
+                </div>
+
+                <input type="text" id="login-user" class="input-field" placeholder="Correo o usuario" value="almacenista1@organirack.com" />
+                <input type="password" id="login-pass" class="input-field" placeholder="Contraseña" value="password" />
+                <button class="btn-primary" id="btn-login" onclick="doLogin()">🔑 Iniciar Sesión</button>
+                <button class="btn-danger" id="btn-logout" style="display:none;" onclick="doLogout()">⏏ Cerrar Sesión</button>
+            </div>
+
+            <!-- CONTROLES DEL ESCENARIO -->
+            <div>
+                <div class="section-title">2. Configuración de la Prueba</div>
+                <div class="control-box">
+                    <div style="font-size:11px; color:#cbd5e1; line-height:1.4;" id="scenario-desc">
+                        Verifica que la petición provenga de la App oficial mediante el header X-API-KEY.
+                    </div>
+
+                    <div class="control-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+                        <span class="control-label">MODO DE DEMOSTRACIÓN:</span>
+                        <div class="mode-presets">
+                            <button class="preset-btn" id="preset-without" onclick="setMode('without')">🔓 SIN CONTROL</button>
+                            <button class="preset-btn active-pass" id="preset-with" onclick="setMode('with')">🛡️ CON CONTROL</button>
+                        </div>
+                    </div>
+
+                    <!-- Switch API Key -->
+                    <div class="control-row" id="row-apikey">
+                        <div>
+                            <div class="control-label">ENVIAR X-API-KEY (Identidad App)</div>
+                            <div class="control-val">{{ config('app.api_key') ? substr(config('app.api_key'), 0, 14).'...' : '(Desde .env)' }}</div>
+                        </div>
+                        <button class="switch on" id="toggle-apikey" onclick="toggleSwitch(this)"></button>
+                    </div>
+
+                    <!-- Switch Bearer Token -->
+                    <div class="control-row" id="row-token" style="display:none;">
+                        <div>
+                            <div class="control-label">ENVIAR BEARER TOKEN (JWT)</div>
+                            <div class="control-val" id="token-status-text">Identidad del empleado</div>
+                        </div>
+                        <button class="switch on" id="toggle-token" onclick="toggleSwitch(this)"></button>
+                    </div>
+
+                    <!-- Controles exclusivos de V4 BOLA/IDOR -->
+                    <div id="row-v4-options" style="display:none; flex-direction:column; gap:8px;">
+                        <div class="control-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+                            <span class="control-label">ACCIÓN INTRUSIVA A PROBAR:</span>
+                            <select id="v4-action-type" class="select-field" style="margin-bottom:0;">
+                                <option value="order">📄 Ver Orden Ajena #1 (BOLA / IDOR)</option>
+                                <option value="delete_product">🗑️ Eliminar Producto #1 siendo Almacenista</option>
+                            </select>
+                        </div>
+
+                        <div class="control-row">
+                            <div>
+                                <div class="control-label">ID DEL RECURSO OBJETIVO</div>
+                                <div class="control-val">Orden #1 es de Admin / Almac. 5</div>
+                            </div>
+                            <input type="number" id="input-resource-id" class="order-input" value="1" min="1" />
+                        </div>
+
+                        <div class="control-row">
+                            <div>
+                                <div class="control-label">POLICY EN SERVIDOR</div>
+                                <div class="control-val">Validar dueño y rol Spatie</div>
+                            </div>
+                            <button class="switch on" id="toggle-policy" onclick="toggleSwitch(this)"></button>
+                        </div>
+                    </div>
+
+                    <!-- Controles exclusivos de V5 Rate Limiter -->
+                    <div id="row-v5-options" style="display:none; flex-direction:column; gap:8px;">
+                        <div class="control-row">
+                            <div>
+                                <div class="control-label">THROTTLE (3 req/min) EN SERVIDOR</div>
+                                <div class="control-val">Protege GET /security/heavy-products</div>
+                            </div>
+                            <button class="switch on" id="toggle-throttle" onclick="toggleSwitch(this)"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="execute-btn" id="btn-execute" onclick="executeScenario()">▶ Ejecutar Prueba</button>
+        </aside>
+
+        <main>
+            <div class="console-header">
+                <div class="win-dots">
+                    <span class="win-dot" style="background:#ef4444;"></span>
+                    <span class="win-dot" style="background:#f59e0b;"></span>
+                    <span class="win-dot" style="background:#10b981;"></span>
+                    <span style="margin-left:8px;">organirack-security-lab ~ auditoría en vivo</span>
+                </div>
+                <button class="clear-btn" onclick="clearConsole()">Limpiar consola</button>
+            </div>
+
+            <div id="console-output"></div>
+        </main>
     </div>
 
-    <div class="divider"></div>
+    <script>
+        const API_BASE = `${window.location.origin}/api`;
+        const SERVER_API_KEY = @json(config('app.api_key', ''));
 
-    <button class="scenario-btn btn-v1" id="btn-v1" onclick="selectScenario('v1')">
-        <span class="dot"></span> V1 Sin Seguridad
-    </button>
-    <button class="scenario-btn btn-v2" id="btn-v2" onclick="selectScenario('v2')">
-        <span class="dot"></span> V2 API Key
-    </button>
-    <button class="scenario-btn btn-v3" id="btn-v3" onclick="selectScenario('v3')">
-        <span class="dot"></span> V3 Sanctum (JWT)
-    </button>
-    <button class="scenario-btn btn-v4" id="btn-v4" onclick="selectScenario('v4')">
-        <span class="dot"></span> V4 BOLA/IDOR
-    </button>
-    <button class="scenario-btn btn-v5" id="btn-v5" onclick="selectScenario('v5')">
-        <span class="dot"></span> V5 Rate Limiter
-    </button>
+        const state = {
+            scenario: 'v2',
+            mode: 'with',
+            token: null,
+            user: null,
+            role: null
+        };
 
-    <div class="spacer"></div>
+        const DESCRIPTIONS = {
+            v1: 'Consulta pública sin controles. Muestra el catálogo general.',
+            v2: 'API Key identifica que la petición viene de la App oficial (Nivel Dispositivo), sin importar qué usuario esté logueado.',
+            v3: 'Sanctum (JWT) identifica QUÉ EMPLEADO está haciendo la petición mediante su Bearer Token personal y devuelve su perfil y rol.',
+            v4: 'Demuestra qué pasa cuando un Almacenista intenta abrir una Orden que NO le pertenece (IDOR) o borrar un Producto del catálogo.',
+            v5: 'Lanza 4 consultas pesadas seguidas al catálogo de Productos para intentar saturar MySQL y prueba cómo el Rate Limiter bloquea la 4ª petición.'
+        };
 
-    <div id="live-indicator">
-        <div class="pulse"></div>
-        API conectada
-    </div>
-</header>
-
-<!-- ===================================================
-     MAIN LAYOUT
-=================================================== -->
-<div id="main">
-
-    <!-- ===============================================
-         LEFT PANEL — Sesión
-    =============================================== -->
-    <aside id="left-panel">
-
-        <!-- Autenticación -->
-        <div class="panel-section">
-            <div class="section-title">Sesión Sanctum</div>
-
-            <div id="auth-status">
-                <div class="status-dot"></div>
-                <div class="status-text" id="auth-label">Sin autenticar</div>
-            </div>
-
-            <div id="token-display"></div>
-
-            <div class="quick-fill-grid">
-                <button class="quick-btn admin" onclick="fillCredentials('admin@organirack.com','password')">
-                    <span class="qb-role">🟣 Admin</span>
-                    <span class="qb-email">admin@...</span>
-                </button>
-                <button class="quick-btn almac" onclick="fillCredentials('almacenista1@organirack.com','password')">
-                    <span class="qb-role">🔵 Almac. 1</span>
-                    <span class="qb-email">almac1@...</span>
-                </button>
-                <button class="quick-btn almac2" onclick="fillCredentials('almacenista2@organirack.com','password')">
-                    <span class="qb-role">🔵 Almac. 2</span>
-                    <span class="qb-email">almac2@...</span>
-                </button>
-                <button class="quick-btn almac" onclick="fillCredentials('almacenista3@organirack.com','password')">
-                    <span class="qb-role">🔵 Almac. 3</span>
-                    <span class="qb-email">almac3@...</span>
-                </button>
-            </div>
-
-            <input type="email" class="lab-input" id="input-email" placeholder="correo@organirack.com" autocomplete="off" />
-            <input type="password" class="lab-input" id="input-password" placeholder="contraseña" autocomplete="off" />
-
-            <button class="lab-btn lab-btn-primary" id="login-btn" onclick="doLogin()">
-                <span id="login-spinner"></span>
-                🔑 Iniciar Sesión
-            </button>
-
-            <button class="lab-btn lab-btn-danger" id="logout-btn" onclick="doLogout()" style="display:none;">
-                ⏏ Cerrar Sesión
-            </button>
-        </div>
-
-        <!-- Config del escenario -->
-        <div class="panel-section">
-            <div class="section-title">Configuración del Escenario</div>
-
-            <div id="scenario-empty" class="console-msg info" style="font-size:11px;">
-                Selecciona un escenario en la barra superior ↑
-            </div>
-
-            <div id="scenario-summary" class="scenario-summary" style="display:none;">
-                <div class="summary-head">
-                    <span class="summary-label">Escenario activo</span>
-                    <span class="summary-badge" id="summary-badge">V1</span>
-                </div>
-                <p id="summary-text">Se ejecutará una prueba de seguridad.</p>
-            </div>
-
-            <div id="scenario-config" style="display:none;">
-                <!-- Dinámico -->
-            </div>
-        </div>
-
-        <!-- Ejecutar -->
-        <div class="panel-section">
-            <button id="execute-btn" onclick="executeScenario()" disabled>
-                ▶ Ejecutar Petición
-            </button>
-        </div>
-
-        <!-- Guía rápida -->
-        <div class="panel-section">
-            <div class="section-title">Guía Rápida</div>
-            <div class="steps-list" id="guide-steps">
-                <span class="step-todo">① Inicia sesión con cualquier usuario</span>
-                <span class="step-todo">② Selecciona un escenario</span>
-                <span class="step-todo">③ Ajusta la config si es necesario</span>
-                <span class="step-todo">④ Presiona ▶ Ejecutar</span>
-                <span class="step-todo">⑤ Observa el resultado en la consola</span>
-            </div>
-        </div>
-    </aside>
-
-    <!-- ===============================================
-         RIGHT PANEL — Console
-    =============================================== -->
-    <main id="right-panel">
-        <div id="console-header">
-            <div class="console-dots">
-                <span class="d1"></span>
-                <span class="d2"></span>
-                <span class="d3"></span>
-            </div>
-            <span id="console-title">organirack-security-lab ~ bash</span>
-            <div class="spacer"></div>
-            <button id="clear-console-btn" onclick="clearConsole()">⌫ Limpiar</button>
-        </div>
-
-        <div id="console-body">
-            <div id="welcome-screen">
-                <div class="shield-icon">🛡️</div>
-                <h2>API Security Lab — OrganiRack+</h2>
-                <p>Banco de pruebas para validar seguridad en una API REST con Laravel.</p>
-                <div class="steps-list">
-                    <span class="step-done">✅ API Key Middleware (X-API-KEY)</span>
-                    <span class="step-done">✅ Rate Limiter (throttle:3,1)</span>
-                    <span class="step-done">✅ Protección BOLA/IDOR con policy por roles</span>
-                    <span class="step-done">✅ Sanctum stateless + bearer token</span>
-                </div>
-                <div class="tiny-badge" style="margin-top:12px;">Inicia sesión → elige un caso → ejecuta</div>
-            </div>
-        </div>
-    </main>
-</div>
-
-<!-- ===================================================
-     JAVASCRIPT — Lab Logic
-=================================================== -->
-<script>
-// =============================================
-// STATE
-// =============================================
-const state = {
-    token: null,
-    userEmail: null,
-    userRole: null,
-    currentScenario: null,
-    requestCount: 0,
-    testMode: 'without',
-};
-
-// Detecta si estamos en localhost o en un servidor real
-const BASE_URL   = window.location.origin;
-const API_BASE   = BASE_URL + '/api';
-const API_KEY    = 'organirack_secreto_123';
-const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-
-// =============================================
-// UTILS
-// =============================================
-function ts() {
-    return new Date().toLocaleTimeString('es-MX', { hour12: false });
-}
-
-function getStatusClass(code) {
-    if (code === 429) return 'status-429';
-    if (code >= 200 && code < 300) return 'status-2xx';
-    if (code >= 300 && code < 400) return 'status-3xx';
-    return 'status-4xx';
-}
-
-function getStatusEmoji(code) {
-    if (code === 200 || code === 201) return '✅';
-    if (code === 401) return '🔒';
-    if (code === 403) return '🚫';
-    if (code === 404) return '🔍';
-    if (code === 422) return '⚠️';
-    if (code === 429) return '🚦';
-    return '❌';
-}
-
-function syntaxHighlight(json) {
-    if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        let cls = 'json-number';
-        if (/^"/.test(match)) {
-            cls = /:$/.test(match) ? 'json-key' : 'json-string';
-        } else if (/true|false/.test(match)) {
-            cls = 'json-bool';
-        } else if (/null/.test(match)) {
-            cls = 'json-null';
+        function fillUser(email, pass) {
+            document.getElementById('login-user').value = email;
+            document.getElementById('login-pass').value = pass;
+            doLogin();
         }
-        if (cls === 'json-key') match = match.replace(/:$/, '');
-        return `<span class="${cls}">${match}</span>${cls === 'json-key' ? ':' : ''}`;
-    });
-}
 
-function appendToConsole(html) {
-    const body = document.getElementById('console-body');
-    const welcome = document.getElementById('welcome-screen');
-    if (welcome) welcome.remove();
-    const div = document.createElement('div');
-    div.className = 'console-entry';
-    div.innerHTML = html;
-    body.appendChild(div);
-    body.scrollTop = body.scrollHeight;
-}
-
-function appendMessage(type, icon, text) {
-    appendToConsole(`<div class="console-msg ${type}">${icon} ${text}</div>`);
-}
-
-function clearConsole() {
-    document.getElementById('console-body').innerHTML =
-        '<div style="color:var(--text-muted);font-size:12px;font-family:\'JetBrains Mono\',monospace;padding:12px;">Console cleared — ' + ts() + '</div>';
-}
-
-function renderRequest(method, url, headers, body) {
-    const headerLines = Object.entries(headers).map(([k, v]) => {
-        let valClass = 'header-val';
-        if (k === 'Authorization') valClass += ' auth-val';
-        else if (k === 'X-API-KEY') valClass += ' apikey-val';
-        return `<div class="header-line">
-                    <span class="header-key">${k}</span>
-                    <span class="header-colon">:</span>
-                    <span class="${valClass}">${v}</span>
-                </div>`;
-    }).join('');
-
-    return `
-    <div class="section-block">
-        <div class="block-label">▸ Request</div>
-        <div class="block-content">
-            <div class="request-line">${method} ${url} HTTP/1.1</div>
-            ${headerLines}
-            ${body ? `<div style="margin-top:8px;color:var(--text-muted);">${JSON.stringify(body)}</div>` : ''}
-        </div>
-    </div>`;
-}
-
-function renderMissingHeaders(missing) {
-    const lines = missing.map(h =>
-        `<div class="header-line"><span class="header-key">${h}</span><span class="header-colon">:</span><span class="header-val absent">(ausente)</span></div>`
-    ).join('');
-    return `
-    <div class="section-block">
-        <div class="block-label">⚠️ Headers Faltantes</div>
-        <div class="block-content">${lines}</div>
-    </div>`;
-}
-
-function renderResponse(status, data) {
-    const cls = getStatusClass(status);
-    const emoji = getStatusEmoji(status);
-    return `
-    <div class="section-block">
-        <div class="block-label">◂ Response</div>
-        <span class="status-badge ${cls}" style="margin-bottom:10px;display:inline-flex;">${emoji} HTTP ${status}</span>
-        <div class="block-content" style="margin-top:8px;">
-            <pre class="json-output">${syntaxHighlight(data)}</pre>
-        </div>
-    </div>`;
-}
-
-function renderEntry(scenarioLabel, scenarioColor, method, url, headers, missingHeaders, status, data, note) {
-    return `
-    <div class="entry-header">
-        <span class="entry-timestamp">${ts()}</span>
-        <span class="entry-scenario" style="background:${scenarioColor}22;color:${scenarioColor};border:1px solid ${scenarioColor}44;">
-            ${scenarioLabel}
-        </span>
-        <span class="status-badge ${getStatusClass(status)}" style="margin-left:auto;">
-            ${getStatusEmoji(status)} ${status}
-        </span>
-    </div>
-    ${note ? `<div class="console-msg info" style="margin-bottom:10px;font-size:11px;">ℹ️ ${note}</div>` : ''}
-    ${renderRequest(method, url, headers)}
-    ${missingHeaders && missingHeaders.length ? renderMissingHeaders(missingHeaders) : ''}
-    ${renderResponse(status, data)}`;
-}
-
-// =============================================
-// AUTH
-// =============================================
-function fillCredentials(email, pass) {
-    document.getElementById('input-email').value = email;
-    document.getElementById('input-password').value = pass;
-}
-
-async function doLogin() {
-    const email = document.getElementById('input-email').value.trim();
-    const pass  = document.getElementById('input-password').value.trim();
-
-    if (!email || !pass) {
-        appendMessage('error', '⚠️', 'Ingresa email y contraseña antes de continuar.');
-        return;
-    }
-
-    const btn = document.getElementById('login-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Autenticando...';
-
-    try {
-        const res = await fetch(`${API_BASE}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
-            body: JSON.stringify({ email, password: pass }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.token) {
-            state.token     = data.token;
-            state.userEmail = email;
-            state.userRole  = data.user?.roles?.[0]?.name ?? data.user?.name ?? email;
-
-            // UI update
-            const authEl = document.getElementById('auth-status');
-            authEl.classList.add('logged-in');
-            document.getElementById('auth-label').textContent = state.userRole || email;
-
-            const tokenEl = document.getElementById('token-display');
-            tokenEl.textContent = state.token.substring(0, 80) + '...';
-            tokenEl.classList.add('visible');
-
-            document.getElementById('logout-btn').style.display = 'flex';
-            document.getElementById('login-btn').style.display  = 'none';
-
-            // Guide steps
-            document.querySelectorAll('.steps-list .step-todo')[0].className = 'step-done';
-
-            appendMessage('success', '🔑', `Sesión iniciada como <strong>${email}</strong>. Token Sanctum recibido.`);
-            updateExecuteBtn();
-        } else {
-            appendMessage('error', '❌', `Login fallido: ${data.message ?? JSON.stringify(data)}`);
+        // --- CORRECCIÓN CRÍTICA DE LOS SWITCHES ---
+        function toggleSwitch(btn) { 
+            if (btn.classList.contains('on')) {
+                btn.classList.remove('on');
+            } else {
+                btn.classList.add('on');
+            }
         }
-    } catch (err) {
-        appendMessage('error', '❌', `Error de red: ${err.message}`);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '🔑 Iniciar Sesión';
-    }
-}
+        
+        function setSwitch(id, turnOn) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (turnOn) {
+                el.classList.add('on');
+            } else {
+                el.classList.remove('on');
+            }
+        }
 
-function doLogout() {
-    state.token     = null;
-    state.userEmail = null;
-    state.userRole  = null;
+        function isOn(id) { 
+            return document.getElementById(id)?.classList.contains('on') ?? false; 
+        }
+        // ------------------------------------------
 
-    document.getElementById('auth-status').classList.remove('logged-in');
-    document.getElementById('auth-label').textContent = 'Sin autenticar';
-    document.getElementById('token-display').classList.remove('visible');
-    document.getElementById('token-display').textContent = '';
-    document.getElementById('logout-btn').style.display  = 'none';
-    document.getElementById('login-btn').style.display   = 'flex';
+        function selectScenario(key) {
+            state.scenario = key;
+            document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${key}`).classList.add('active');
+            document.getElementById('scenario-desc').textContent = DESCRIPTIONS[key];
 
-    appendMessage('warn', '⏏', 'Sesión cerrada. Token eliminado del lab.');
-    updateExecuteBtn();
-}
+            document.getElementById('row-apikey').style.display     = (key === 'v2' || key === 'v3' || key === 'v5') ? 'flex' : 'none';
+            document.getElementById('row-token').style.display      = (key === 'v3' || key === 'v4' || key === 'v5') ? 'flex' : 'none';
+            document.getElementById('row-v4-options').style.display = (key === 'v4') ? 'flex' : 'none';
+            document.getElementById('row-v5-options').style.display = (key === 'v5') ? 'flex' : 'none';
 
-// =============================================
-// SCENARIOS
-// =============================================
-const SCENARIOS = {
-    v1: {
-        label: 'V1 Sin Seguridad',
-        color: '#8899bb',
-        description: 'Accede a <code>GET /api/products</code> sin token ni API Key. Este es el estado vulnerable: cualquier cliente puede consultar catálogo público.',
-        before: 'Sin protección: el endpoint responde con 200 sin autenticar.',
-        after: 'Estado protegido: se mantiene público solo para lectura de catálogo, sin datos sensibles ni operaciones críticas.',
-    },
-    v2: {
-        label: 'V2 API Key',
-        color: '#ffc845',
-        description: 'Accede a <code>GET /api/security/app-check</code> con el header <code>X-API-KEY</code>. La prueba válida compara un valor ausente vs. uno correcto.',
-        before: 'Sin X-API-KEY: 401 con “Acceso denegado”.',
-        after: 'Con X-API-KEY válido: 200 y acceso autorizado.',
-        hasApiKeyToggle: true,
-        hasProtectedToken: true,
-    },
-    v3: {
-        label: 'V3 Sanctum (JWT)',
-        color: '#00e88a',
-        description: 'Accede a <code>GET /api/security/me</code> con Bearer Token de Sanctum + API Key. Valida autenticación stateless.',
-        before: 'Sin token: 401 de autenticación.',
-        after: 'Con token válido + API Key: 200 OK y usuario autenticado.',
-        hasProtectedToken: true,
-    },
-    v4: {
-        label: 'V4 BOLA/IDOR y Roles',
-        color: '#ff4560',
-        description: 'Demuestra la diferencia entre un Almacenista intentando ver/romper una orden ajena y un delete de producto sin permisos. Usa <code>/api/security/orders/{id}?control=on|off</code> y <code>/api/security/products/{id}?control=on|off</code>.',
-        before: 'Sin política: un usuario puede ver/alterar recursos ajenos.',
-        after: 'Con policy + roles: usuario ajeno o rol no autorizado recibe 403.',
-        hasOrderId: true,
-        hasProtectedToken: true,
-    },
-    v5: {
-        label: 'V5 Rate Limiter',
-        color: '#ff8c42',
-        description: 'Lanza 4 peticiones pesadas a <code>GET /api/security/heavy-products?control=on|off</code>. El peligro real es agotar MySQL con consultas pesadas.',
-        before: 'Sin control: las 4 consultas pesadas pasan y se demuestra la saturación.',
-        after: 'Con throttle:3,1 la 4ta petición devuelve 429 Too Many Attempts.',
-        hasBurst: true,
-        hasProtectedToken: true,
-    },
-};
+            setMode('with');
+        }
 
-function selectScenario(v) {
-    state.currentScenario = v;
+        function setMode(mode) {
+            state.mode = mode;
+            const btnWithout = document.getElementById('preset-without');
+            const btnWith = document.getElementById('preset-with');
+            btnWithout.classList.remove('active-fail');
+            btnWith.classList.remove('active-pass');
 
-    // Update button states
-    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`btn-${v}`).classList.add('active');
+            if (mode === 'without') {
+                btnWithout.classList.add('active-fail');
+                if (state.scenario === 'v2') {
+                    setSwitch('toggle-apikey', false);
+                } else if (state.scenario === 'v3') {
+                    setSwitch('toggle-token', false);
+                    setSwitch('toggle-apikey', true);
+                } else if (state.scenario === 'v4') {
+                    setSwitch('toggle-token', true);
+                    setSwitch('toggle-policy', false);
+                } else if (state.scenario === 'v5') {
+                    setSwitch('toggle-apikey', true);
+                    setSwitch('toggle-token', true);
+                    setSwitch('toggle-throttle', false);
+                }
+            } else {
+                btnWith.classList.add('active-pass');
+                setSwitch('toggle-apikey', true);
+                setSwitch('toggle-token', true);
+                setSwitch('toggle-policy', true);
+                setSwitch('toggle-throttle', true);
+            }
+        }
 
-    // Render config panel
-    const sc = SCENARIOS[v];
-    const configEl = document.getElementById('scenario-config');
-    const emptyEl  = document.getElementById('scenario-empty');
-    const summaryEl = document.getElementById('scenario-summary');
-    const summaryBadge = document.getElementById('summary-badge');
-    const summaryText = document.getElementById('summary-text');
+        async function doLogin() {
+            const identifier = document.getElementById('login-user').value.trim();
+            const password = document.getElementById('login-pass').value.trim();
+            const btn = document.getElementById('btn-login');
+            btn.disabled = true;
+            btn.textContent = '⏳ Autenticando...';
 
-    emptyEl.style.display  = 'none';
-    configEl.style.display = 'block';
-    summaryEl.style.display = 'block';
-    summaryBadge.textContent = v.toUpperCase();
-    summaryText.textContent = sc.description.replace(/<[^>]+>/g, '');
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ email: identifier, username: identifier, password })
+                });
+                const data = await res.json();
 
-    let configHTML = `
-        <div class="console-msg info" style="margin-bottom:10px;font-size:11px;">${sc.description}</div>
-        <div class="state-grid">
-            <div class="state-card vulnerable">
-                <div class="state-head">
-                    <span class="state-tag">Antes</span>
-                    <span class="tiny-badge">Vulnerable</span>
+                if (res.ok && data.token) {
+                    state.token = data.token;
+                    state.user = data.user?.email || identifier;
+                    state.role = data.user?.roles?.[0]?.name || 'Almacenista';
+
+                    document.getElementById('auth-badge').classList.add('logged');
+                    document.getElementById('auth-text').textContent = `🟢 ${state.user}`;
+                    document.getElementById('auth-role').textContent = state.role;
+                    document.getElementById('btn-logout').style.display = 'block';
+
+                    logCard('🔑 Sesión Iniciada', 'POST', `${API_BASE}/login`, {}, res.status, data, `Autenticado como ${state.user} (${state.role}).`);
+                } else {
+                    logCard('❌ Error de Login', 'POST', `${API_BASE}/login`, {}, res.status, data, 'Credenciales incorrectas.');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔑 Iniciar Sesión';
+            }
+        }
+
+        function doLogout() {
+            state.token = null; state.user = null; state.role = null;
+            document.getElementById('auth-badge').classList.remove('logged');
+            document.getElementById('auth-text').textContent = '🔴 Sin autenticar';
+            document.getElementById('auth-role').textContent = '';
+            document.getElementById('btn-logout').style.display = 'none';
+        }
+
+        function buildHeaders(useApiKey, useToken) {
+            const real = { 'Accept': 'application/json' };
+            const display = { 'Accept': 'application/json' };
+
+            if (useApiKey) {
+                real['X-API-KEY'] = SERVER_API_KEY;
+                display['X-API-KEY'] = `${SERVER_API_KEY.substring(0, 12)}...`;
+            } else {
+                display['X-API-KEY'] = '❌ (Omitido)';
+            }
+
+            if (useToken) {
+                if (state.token) {
+                    real['Authorization'] = `Bearer ${state.token}`;
+                    display['Authorization'] = `Bearer ${state.token.substring(0, 18)}...`;
+                } else {
+                    display['Authorization'] = '⚠️ (No has iniciado sesión)';
+                }
+            } else {
+                display['Authorization'] = '❌ (Omitido)';
+            }
+            return { real, display };
+        }
+
+        async function executeScenario() {
+            const btn = document.getElementById('btn-execute');
+            btn.disabled = true;
+            btn.textContent = '⏳ Ejecutando...';
+            try {
+                if (state.scenario === 'v1') await runV1();
+                else if (state.scenario === 'v2') await runV2();
+                else if (state.scenario === 'v3') await runV3();
+                else if (state.scenario === 'v4') await runV4();
+                else if (state.scenario === 'v5') await runV5();
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '▶ Ejecutar Prueba';
+            }
+        }
+
+        async function runV1() {
+            const url = `${API_BASE}/products?per_page=3`;
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            logCard('V1 Catálogo Público', 'GET', url, { Accept: 'application/json' }, res.status, data, 'Endpoint abierto sin protección.');
+        }
+
+        async function runV2() {
+            const url = `${API_BASE}/security/app-check`;
+            const { real, display } = buildHeaders(isOn('toggle-apikey'), false);
+            delete display['Authorization'];
+            const res = await fetch(url, { headers: real });
+            const data = await res.json();
+            const note = res.status === 200
+                ? '✅ X-API-KEY válida: El servidor reconoce que la petición viene de la aplicación oficial.'
+                : '❌ Sin X-API-KEY: El servidor rechaza la petición (401) porque no proviene de un cliente autorizado.';
+            logCard('V2 API Key (Identidad de la App)', 'GET', url, display, res.status, data, note);
+        }
+
+        async function runV3() {
+            const url = `${API_BASE}/security/me`;
+            const { real, display } = buildHeaders(isOn('toggle-apikey'), isOn('toggle-token'));
+            const res = await fetch(url, { headers: real });
+            const data = await res.json();
+            const note = res.status === 200
+                ? `✅ Token Sanctum válido: El servidor identifica al humano (${data.user_profile?.name}) y sus roles.`
+                : '❌ Sin Bearer Token: Aunque tengas la API Key de la app, el servidor no sabe qué empleado eres (401 Unauthenticated).';
+            logCard('V3 Sanctum / JWT (Identidad del Empleado)', 'GET', url, display, res.status, data, note);
+        }
+
+        async function runV4() {
+            if (!state.token) {
+                await fillUser('almacenista1@organirack.com', 'password');
+            }
+            const action = document.getElementById('v4-action-type').value;
+            const id = document.getElementById('input-resource-id').value || '1';
+            const policyOn = isOn('toggle-policy') ? 'on' : 'off';
+            const { real, display } = buildHeaders(false, isOn('toggle-token'));
+            delete display['X-API-KEY'];
+
+            if (action === 'order') {
+                const url = `${API_BASE}/security/orders/${id}?control=${policyOn}`;
+                const res = await fetch(url, { headers: real });
+                const data = await res.json();
+                const note = res.status === 403
+                    ? `🛡️ PROTECCIÓN BOLA/IDOR ACTIVA: '${state.user}' intentó espiar la Orden #${id} (que es de otro compañero) y la Policy lo bloqueó con 403 Forbidden.`
+                    : (policyOn === 'off'
+                        ? `⚠️ VULNERABILIDAD DEMOSTRADA (Sin Control): Con la Policy apagada, '${state.user}' pudo robar los datos de la Orden #${id} aunque NO le pertenece.`
+                        : `✅ Acceso permitido porque '${state.user}' es Administrador o dueño legítimo de la Orden #${id}.`);
+                logCard('V4 BOLA / IDOR — Acceso a Orden Ajena', 'GET', url, display, res.status, data, note, policyOn === 'off' && res.status === 200);
+            } else {
+                const url = `${API_BASE}/security/products/${id}?control=${policyOn}`;
+                const res = await fetch(url, { method: 'DELETE', headers: real });
+                const data = await res.json();
+                const note = res.status === 403
+                    ? `🛡️ PROTECCIÓN DE ROL ACTIVA: '${state.user}' (Almacenista) intentó eliminar el Producto #${id} y fue bloqueado con 403 Forbidden.`
+                    : (policyOn === 'off'
+                        ? `⚠️ VULNERABILIDAD DEMOSTRADA (Sin Control): Sin validación de permisos, un Almacenista pudo eliminar el Producto #${id}.`
+                        : `✅ Eliminación permitida para el rol Administrador.`);
+                logCard('V4 Control de Permisos — Eliminar Producto', 'DELETE', url, display, res.status, data, note, policyOn === 'off' && res.status === 200);
+            }
+        }
+
+        async function runV5() {
+            if (!state.token) {
+                await fillUser('almacenista1@organirack.com', 'password');
+            }
+            const throttleOn = isOn('toggle-throttle') ? 'on' : 'off';
+            const url = `${API_BASE}/security/heavy-products?control=${throttleOn}`;
+            const { real, display } = buildHeaders(isOn('toggle-apikey'), isOn('toggle-token'));
+
+            for (let i = 1; i <= 4; i++) {
+                const res = await fetch(url, { headers: real });
+                const data = await res.json();
+                let note = '';
+                if (res.status === 429) {
+                    note = `🛑 PETICIÓN #${i}/4 BLOQUEADA (429 Too Many Requests): El Rate Limiter detuvo el ataque de fuerza bruta sobre el catálogo de productos.`;
+                } else if (throttleOn === 'off') {
+                    note = `⚠️ Petición #${i}/4 sin Rate Limiter: La consulta pesada a MySQL se ejecutó sin límite (riesgo de caída por DoS).`;
+                } else {
+                    note = `✅ Petición #${i}/4 permitida (${i}/3 dentro del límite por minuto).`;
+                }
+                logCard(`V5 Rate Limiter en Catálogo Pesado [Req #${i}/4]`, 'GET', url, display, res.status, data, note, throttleOn === 'off' && i === 4);
+            }
+        }
+
+        function logCard(title, method, url, headers, status, data, note, isVulnerableWarning = false) {
+            const out = document.getElementById('console-output');
+            const isOk = status >= 200 && status < 300;
+            const card = document.createElement('div');
+            card.className = `log-card ${isVulnerableWarning ? 'warn' : (isOk ? 'ok' : 'err')}`;
+
+            const headersHtml = Object.entries(headers)
+                .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
+                .join(' &nbsp;|&nbsp; ');
+
+            const badgeClass = isVulnerableWarning ? 'badge-warn' : (isOk ? 'badge-ok' : 'badge-err');
+            const badgeIcon  = isVulnerableWarning ? '⚠️ VULNERABLE' : (isOk ? '✅' : '🛑');
+
+            card.innerHTML = `
+                <div class="log-top">
+                    <span style="font-weight:700; color:#f8fafc;">▶ ${title} &nbsp;—&nbsp; <span style="color:#38bdf8;">${method} ${url}</span></span>
+                    <span class="badge-status ${badgeClass}">${badgeIcon} HTTP ${status}</span>
                 </div>
-                <p>${sc.before}</p>
-            </div>
-            <div class="state-card protected">
-                <div class="state-head">
-                    <span class="state-tag">Ahora</span>
-                    <span class="tiny-badge">Protegido</span>
-                </div>
-                <p>${sc.after}</p>
-            </div>
-        </div>
-    `;
-
-    if (sc.hasApiKeyToggle || sc.hasOrderId || sc.hasBurst || sc.hasProtectedToken) {
-        configHTML += `
-            <div class="config-row" style="margin-top: 10px; flex-wrap: wrap;">
-                <label style="width: auto; min-width: 60px;">PRUEBA</label>
-                <div class="mode-switch">
-                    <button type="button" class="mode-btn ${state.testMode === 'without' ? 'active' : ''}" data-mode="without" onclick="setTestMode('without')">Sin control</button>
-                    <button type="button" class="mode-btn ${state.testMode === 'with' ? 'active' : ''}" data-mode="with" onclick="setTestMode('with')">Con control</button>
-                </div>
-            </div>
-        `;
-    }
-
-    // API Key toggle
-    if (sc.hasApiKeyToggle) {
-        configHTML += `
-        <div class="config-row">
-            <label>API KEY</label>
-            <span class="config-val" id="apikey-val-display">${API_KEY}</span>
-            <button class="config-toggle on" id="apikey-toggle" onclick="toggleApiKey(this)" title="Activar/desactivar API Key"></button>
-        </div>`;
-    }
-
-    // Order ID input
-    if (sc.hasOrderId) {
-        configHTML += `
-        <div class="config-row">
-            <label>Order ID</label>
-            <input type="number" class="resource-input" id="order-id-input" value="1" min="1" />
-        </div>
-        <div class="config-row" style="margin-top:0;">
-            <label>USE AUTH</label>
-            <span class="config-val">Bearer Token automático</span>
-        </div>`;
-    }
-
-    // Burst toggle
-    if (sc.hasBurst) {
-        configHTML += `
-        <div class="config-row">
-            <label>RÁFAGA</label>
-            <span class="config-val">4 peticiones consecutivas</span>
-        </div>`;
-    }
-
-    // Auth indicator
-    configHTML += `
-    <div class="config-row" style="margin-top:6px;">
-        <label>TOKEN</label>
-        <span class="config-val" id="token-indicator">${state.token ? '✅ Listo' : '❌ Sin sesión'}</span>
-    </div>`;
-
-    configEl.innerHTML = configHTML;
-    updateExecuteBtn();
-}
-
-function toggleApiKey(btn) {
-    btn.classList.toggle('on');
-    btn.classList.toggle('off');
-}
-
-function updateExecuteBtn() {
-    const btn = document.getElementById('execute-btn');
-    btn.disabled = !state.currentScenario;
-}
-
-function setTestMode(mode) {
-    state.testMode = mode;
-    const buttons = document.querySelectorAll('.mode-btn');
-    buttons.forEach((btn) => {
-        const active = btn.dataset.mode === mode;
-        btn.classList.toggle('active', active);
-    });
-}
-
-// =============================================
-// EXECUTE SCENARIOS
-// =============================================
-async function executeScenario() {
-    if (!state.currentScenario) return;
-
-    const btn = document.getElementById('execute-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Enviando...';
-
-    try {
-        switch (state.currentScenario) {
-            case 'v1': await runV1(); break;
-            case 'v2': await runV2(); break;
-            case 'v3': await runV3(); break;
-            case 'v4': await runV4(); break;
-            case 'v5': await runV5(); break;
+                <div class="headers-line">📡 Headers: ${headersHtml || '(Petición pública)'}</div>
+                <pre class="json-box">${JSON.stringify(data, null, 2)}</pre>
+                <div class="note-line">${note}</div>
+            `;
+            out.appendChild(card);
+            out.scrollTop = out.scrollHeight;
         }
-    } catch(e) {
-        appendMessage('error', '❌', `Error inesperado: ${e.message}`);
-    } finally {
-        btn.disabled = !state.currentScenario;
-        btn.innerHTML = '▶ Ejecutar Petición';
-    }
-}
 
-// --- V1: Endpoint público sin seguridad ---
-async function runV1() {
-    const url = `${API_BASE}/products?per_page=3`;
-    const headers = { 'Accept': 'application/json' };
-    const missing = [];
-    const note = 'Endpoint público — no requiere token ni API Key. Muestra los primeros 3 productos del catálogo.';
-
-    const res = await fetch(url, { headers });
-    const data = await res.json();
-    const limited = { ...data, data: data.data ? data.data.slice(0, 2) : data };
-
-    appendToConsole(renderEntry(
-        SCENARIOS.v1.label, SCENARIOS.v1.color,
-        'GET', url, headers, missing, res.status, limited, note
-    ));
-}
-
-// --- V2: API Key ---
-async function runV2() {
-    const url = `${API_BASE}/security/app-check`;
-    const useApiKey = document.getElementById('toggle-apikey')?.classList.contains('on') ?? true;
-    const realHeaders = { 'Accept': 'application/json' };
-    const displayHeaders = { 'Accept': 'application/json' };
-
-    if (useApiKey) {
-        realHeaders['X-API-KEY'] = API_KEY;
-        displayHeaders['X-API-KEY'] = `${API_KEY.substring(0, 12)}...`;
-    } else {
-        displayHeaders['X-API-KEY'] = '❌ (Omitido)';
-    }
-
-    const res = await fetch(url, { headers: realHeaders });
-    const data = await res.json();
-    const note = res.status === 200
-        ? '✅ X-API-KEY válida: el servidor reconoce que la petición viene de la aplicación oficial.'
-        : '❌ Sin X-API-KEY: el middleware rechaza la petición con 401.';
-
-    appendToConsole(renderEntry(
-        SCENARIOS.v2.label, SCENARIOS.v2.color,
-        'GET', url, displayHeaders, [], res.status, data, note
-    ));
-}
-
-// --- V3: Sanctum JWT ---
-async function runV3() {
-    const url = `${API_BASE}/security/me`;
-    const useApiKey = document.getElementById('toggle-apikey')?.classList.contains('on') ?? true;
-    const useToken = document.getElementById('toggle-token')?.classList.contains('on') ?? true;
-    const realHeaders = { 'Accept': 'application/json' };
-    const displayHeaders = { 'Accept': 'application/json' };
-
-    if (useApiKey) {
-        realHeaders['X-API-KEY'] = API_KEY;
-        displayHeaders['X-API-KEY'] = `${API_KEY.substring(0, 12)}...`;
-    } else {
-        displayHeaders['X-API-KEY'] = '❌ (Omitido)';
-    }
-
-    if (useToken && state.token) {
-        realHeaders['Authorization'] = `Bearer ${state.token}`;
-        displayHeaders['Authorization'] = `Bearer ${state.token.substring(0, 18)}...`;
-    } else {
-        displayHeaders['Authorization'] = '❌ (Omitido)';
-    }
-
-    const res = await fetch(url, { headers: realHeaders });
-    const data = await res.json();
-    const note = res.status === 200
-        ? `✅ Token Sanctum válido: el servidor identifica al usuario y sus roles.`
-        : '❌ Sin Bearer Token: aunque la app tenga la API Key, el servidor no sabe qué empleado está haciendo la petición.';
-
-    appendToConsole(renderEntry(
-        SCENARIOS.v3.label, SCENARIOS.v3.color,
-        'GET', url, displayHeaders, [], res.status, data, note
-    ));
-}
-
-// --- V4: BOLA/IDOR + RBAC ---
-async function runV4() {
-    if (!state.token) {
-        const loginRes = await fetch(`${API_BASE}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ username: 'almacenista1', password: 'password' })
-        });
-        const loginData = await loginRes.json();
-        if (!loginRes.ok || !loginData.token) {
-            appendToConsole(renderEntry(
-                SCENARIOS.v4.label, SCENARIOS.v4.color,
-                'POST', `${API_BASE}/login`, { 'Content-Type': 'application/json' }, [], 401, { message: 'No se pudo autenticar al almacén de prueba.' },
-                'No se pudo hacer login del usuario de prueba para la demo.'
-            ));
-            return;
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '';
         }
-        state.token = loginData.token;
-    }
 
-    const actionType = document.getElementById('v4-action-type')?.value ?? 'order';
-    const resourceId = document.getElementById('input-resource-id')?.value ?? '1';
-    const controlOn = document.getElementById('toggle-policy')?.classList.contains('on') ?? true;
-    const realHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token}` };
-    const displayHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token.substring(0, 18)}...` };
-
-    let url;
-    let method = 'GET';
-    let res;
-    let data;
-
-    if (actionType === 'order') {
-        url = `${API_BASE}/security/orders/${resourceId}?control=${controlOn ? 'on' : 'off'}`;
-        res = await fetch(url, { headers: realHeaders });
-        data = await res.json();
-
-        const note = res.status === 403
-            ? `🛡️ PROTECCIÓN BOLA/IDOR ACTIVA: el usuario intentó abrir la Orden #${resourceId} sin ser dueño y el servidor lo bloqueó.`
-            : controlOn
-                ? `✅ Control activo: el usuario es administrador o dueño de la orden y el servidor acepta la operación.`
-                : `⚠️ Sin control: el servidor entregó la orden ajena sin validar pertenencia.`;
-
-        appendToConsole(renderEntry(
-            SCENARIOS.v4.label, SCENARIOS.v4.color,
-            method, url, displayHeaders, [], res.status, data, note
-        ));
-        return;
-    }
-
-    url = `${API_BASE}/security/products/${resourceId}?control=${controlOn ? 'on' : 'off'}`;
-    method = 'DELETE';
-    res = await fetch(url, { method: 'DELETE', headers: realHeaders });
-    data = await res.json();
-
-    const note = res.status === 403
-        ? `🛡️ RBAC ACTIVO: un Almacenista NO puede borrar productos del catálogo y el servidor responde 403.`
-        : controlOn
-            ? `✅ El administrador puede realizar la acción simulada.`
-            : `⚠️ Sin control: un Almacenista pudo ejecutar DELETE sobre el producto sin validar permisos.`;
-
-    appendToConsole(renderEntry(
-        SCENARIOS.v4.label, SCENARIOS.v4.color,
-        method, url, displayHeaders, [], res.status, data, note
-    ));
-}
-
-// --- V5: Rate Limiter en catálogo pesado ---
-async function runV5() {
-    if (!state.token) {
-        const loginRes = await fetch(`${API_BASE}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ username: 'almacenista1', password: 'password' })
-        });
-        const loginData = await loginRes.json();
-        if (!loginRes.ok || !loginData.token) {
-            appendToConsole(renderEntry(
-                SCENARIOS.v5.label, SCENARIOS.v5.color,
-                'POST', `${API_BASE}/login`, { 'Content-Type': 'application/json' }, [], 401, { message: 'No se pudo autenticar al usuario de prueba.' },
-                'No se pudo autenticar el usuario para la ráfaga de prueba.'
-            ));
-            return;
-        }
-        state.token = loginData.token;
-    }
-
-    const throttleOn = document.getElementById('toggle-throttle')?.classList.contains('on') ?? true;
-    const useApiKey = document.getElementById('toggle-apikey')?.classList.contains('on') ?? true;
-    const url = `${API_BASE}/security/heavy-products?control=${throttleOn ? 'on' : 'off'}`;
-    const realHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token}` };
-    const displayHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token.substring(0, 18)}...` };
-
-    if (useApiKey) {
-        realHeaders['X-API-KEY'] = API_KEY;
-        displayHeaders['X-API-KEY'] = `${API_KEY.substring(0, 12)}...`;
-    }
-
-    for (let i = 1; i <= 4; i++) {
-        const res = await fetch(url, { headers: realHeaders });
-        const data = await res.json();
-        const note = res.status === 429
-            ? `🛑 PETICIÓN #${i}/4 BLOQUEADA: el Rate Limiter cortó la ráfaga con 429 Too Many Requests.`
-            : throttleOn
-                ? `✅ PETICIÓN #${i}/4 permitida dentro del límite de 3 req/min.`
-                : `⚠️ PETICIÓN #${i}/4 sin throttle: la consulta pesada pasó aunque la ráfaga no estaba controlada.`;
-
-        appendToConsole(renderEntry(
-            `${SCENARIOS.v5.label} — Req ${i}/4`, SCENARIOS.v5.color,
-            'GET', url, displayHeaders, [], res.status, data, note
-        ));
-    }
-}
-
-// =============================================
-// LOGIN with Enter key
-// =============================================
-['input-email','input-password'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', e => {
-        if (e.key === 'Enter') doLogin();
-    });
-});
-</script>
+        selectScenario('v2');
+    </script>
 </body>
 </html>
