@@ -219,6 +219,67 @@
 
         .panel-section:last-child { border-bottom: none; }
 
+        .scenario-summary {
+            background: rgba(59, 127, 255, 0.08);
+            border: 1px solid rgba(59, 127, 255, 0.25);
+            border-radius: var(--radius-md);
+            padding: 12px 10px;
+            margin: -4px 0 12px;
+        }
+
+        .scenario-summary .summary-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .scenario-summary .summary-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.4px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+        }
+
+        .scenario-summary .summary-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 22px;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            background: rgba(0, 212, 255, 0.14);
+            border: 1px solid rgba(0, 212, 255, 0.28);
+            color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .scenario-summary p {
+            font-size: 11px;
+            line-height: 1.55;
+            color: var(--text-secondary);
+        }
+
+        .tiny-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
         .section-title {
             font-size: 10px;
             font-weight: 700;
@@ -849,6 +910,14 @@
                 Selecciona un escenario en la barra superior ↑
             </div>
 
+            <div id="scenario-summary" class="scenario-summary" style="display:none;">
+                <div class="summary-head">
+                    <span class="summary-label">Escenario activo</span>
+                    <span class="summary-badge" id="summary-badge">V1</span>
+                </div>
+                <p id="summary-text">Se ejecutará una prueba de seguridad.</p>
+            </div>
+
             <div id="scenario-config" style="display:none;">
                 <!-- Dinámico -->
             </div>
@@ -893,16 +962,14 @@
             <div id="welcome-screen">
                 <div class="shield-icon">🛡️</div>
                 <h2>API Security Lab — OrganiRack+</h2>
-                <p>Plataforma de pruebas para los 4 mecanismos de seguridad implementados en este backend de Laravel.</p>
+                <p>Banco de pruebas para validar seguridad en una API REST con Laravel.</p>
                 <div class="steps-list">
-                    <span class="step-done">✅ Punto 1 — API Key Middleware (X-API-KEY)</span>
-                    <span class="step-done">✅ Punto 2 — Rate Limiter (throttle:3,1)</span>
-                    <span class="step-done">✅ Punto 3 — Protección BOLA/IDOR (Policy + Roles)</span>
-                    <span class="step-done">✅ Punto 4 — Sanctum como JWT stateless</span>
+                    <span class="step-done">✅ API Key Middleware (X-API-KEY)</span>
+                    <span class="step-done">✅ Rate Limiter (throttle:3,1)</span>
+                    <span class="step-done">✅ Protección BOLA/IDOR con policy por roles</span>
+                    <span class="step-done">✅ Sanctum stateless + bearer token</span>
                 </div>
-                <p style="font-size:11px; color: var(--text-muted);">
-                    Inicia sesión → selecciona un escenario → ▶ Ejecutar
-                </p>
+                <div class="tiny-badge" style="margin-top:12px;">Inicia sesión → elige un caso → ejecuta</div>
             </div>
         </div>
     </main>
@@ -1177,9 +1244,15 @@ function selectScenario(v) {
     const sc = SCENARIOS[v];
     const configEl = document.getElementById('scenario-config');
     const emptyEl  = document.getElementById('scenario-empty');
+    const summaryEl = document.getElementById('scenario-summary');
+    const summaryBadge = document.getElementById('summary-badge');
+    const summaryText = document.getElementById('summary-text');
 
     emptyEl.style.display  = 'none';
     configEl.style.display = 'block';
+    summaryEl.style.display = 'block';
+    summaryBadge.textContent = v.toUpperCase();
+    summaryText.textContent = sc.description.replace(/<[^>]+>/g, '');
 
     let configHTML = `<div class="console-msg info" style="margin-bottom:10px;font-size:11px;">${sc.description}</div>`;
 
