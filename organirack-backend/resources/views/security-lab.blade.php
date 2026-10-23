@@ -795,11 +795,11 @@
                 note = `✅ Petición #${i}/${totalRequests} permitida (dentro del límite de 3 req/min).`;
             }
 
-            // Si está sin control, marcamos todas como vulnerables. Si tiene control, marcamos rojas a partir de la 4.
+            // Se fuerza a imprimir la tarjeta SIEMPRE, en cada iteración del ciclo
             const isVulnerable = throttleOn === 'off' || res.status === 429;
             logCard(`Rate Limiter — req #${i}/${totalRequests}`, 'GET', url, display, res.status, data, note, isVulnerable);
             
-            // Micro-pausa de 50ms para permitir que el navegador dibuje la tarjeta sin congelar la pantalla
+            // Micro-pausa de 50ms para que el navegador no se congele al dibujar tanto texto
             await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
