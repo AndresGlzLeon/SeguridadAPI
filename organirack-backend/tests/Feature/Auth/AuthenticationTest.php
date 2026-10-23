@@ -33,3 +33,21 @@ test('users can logout', function () {
     $this->assertGuest();
     $response->assertNoContent();
 });
+
+test('api login accepts email as a valid credential', function () {
+    $user = User::factory()->create([
+        'email' => 'almacenista.test@organirack.com',
+        'password' => bcrypt('password'),
+    ]);
+
+    $user->assignRole('Almacenista');
+
+    $response = $this->postJson('/api/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('user.email', $user->email)
+        ->assertJsonPath('user.roles.0', 'Almacenista');
+});
