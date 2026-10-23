@@ -475,21 +475,24 @@
             display: flex;
             gap: 6px;
             flex: 1;
+            min-width: 0;
         }
 
         .mode-btn {
-            flex: 1;
+            flex: 1 1 50%;
+            min-height: 32px;
             border: 1px solid var(--border);
             background: var(--bg-input);
             color: var(--text-secondary);
             border-radius: 6px;
             padding: 6px 8px;
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
             cursor: pointer;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
         .mode-btn:hover {
@@ -562,8 +565,10 @@
         .state-card p {
             margin: 0;
             font-size: 10.5px;
-            line-height: 1.5;
+            line-height: 1.55;
             color: var(--text-secondary);
+            word-break: break-word;
+            white-space: normal;
         }
 
         .config-row label {
@@ -1386,15 +1391,14 @@ function selectScenario(v) {
 
     if (sc.hasApiKeyToggle || sc.hasOrderId || sc.hasBurst || sc.hasProtectedToken) {
         configHTML += `
-            <div class="config-row" style="margin-top: 10px;">
-                <label>PRUEBA</label>
+            <div class="config-row" style="margin-top: 10px; flex-wrap: wrap;">
+                <label style="width: auto; min-width: 60px;">PRUEBA</label>
                 <div class="mode-switch">
-                    <button type="button" class="mode-btn ${state.testMode === 'without' ? 'active' : ''}" data-mode="without">Sin control</button>
-                    <button type="button" class="mode-btn ${state.testMode === 'with' ? 'active' : ''}" data-mode="with">Con control</button>
+                    <button type="button" class="mode-btn ${state.testMode === 'without' ? 'active' : ''}" data-mode="without" onclick="setTestMode('without')">Sin control</button>
+                    <button type="button" class="mode-btn ${state.testMode === 'with' ? 'active' : ''}" data-mode="with" onclick="setTestMode('with')">Con control</button>
                 </div>
             </div>
         `;
-        bindModeButtons();
     }
 
     // API Key toggle
@@ -1456,12 +1460,6 @@ function setTestMode(mode) {
     buttons.forEach((btn) => {
         const active = btn.dataset.mode === mode;
         btn.classList.toggle('active', active);
-    });
-}
-
-function bindModeButtons() {
-    document.querySelectorAll('.mode-btn').forEach((btn) => {
-        btn.addEventListener('click', () => setTestMode(btn.dataset.mode));
     });
 }
 
