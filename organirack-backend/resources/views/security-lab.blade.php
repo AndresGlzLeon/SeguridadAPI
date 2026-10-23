@@ -1340,8 +1340,8 @@ const SCENARIOS = {
     v5: {
         label: 'V5 Rate Limiter',
         color: '#ff8c42',
-        description: 'Envía 4 peticiones rápidas a <code>GET /api/security/ping</code>. El valor de la cuota es 3 req/minuto.',
-        before: 'Sin throttle: un atacante puede hacer ráfagas ilimitadas.',
+        description: 'Compara un endpoint público sin throttle contra <code>GET /api/security/ping</code> con throttle:3,1.',
+        before: 'Sin control: un atacante puede repetir peticiones en un endpoint público y no recibe 429.',
         after: 'Con throttle:3,1 la 4ta petición devuelve 429 Too Many Attempts.',
         hasBurst: true,
         hasProtectedToken: true,
@@ -1586,25 +1586,52 @@ async function runV3() {
 async function runV4() {
     const orderId = document.getElementById('order-id-input')?.value ?? '1';
     const url = `${API_BASE}/orders/${orderId}`;
+    const isWithoutControl = state.testMode === 'without';
     const headers = { 'Accept': 'application/json' };
     const missing = [];
 
-    if (!state.token) {
+    let activeToken = state.token;
+
+    if (isWithoutControl && !state.token) {
         missing.push('Authorization');
         headers['Authorization'] = '(ausente)';
-    } else {
+    } else if (isWithoutControl) {
+        try {
+            const loginResponse = await fetch(`${API_BASE}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ username: 'almac005', password: 'password' })
+            });
+
+            const loginData = await loginResponse.json();
+            if (loginResponse.ok && loginData.data?.token) {
+                activeToken = loginData.data.token;
+                headers['Authorization'] = `Bearer ${activeToken.substring(0, 30)}...`;
+            } else {
+                missing.push('Authorization');
+                headers['Authorization'] = '(ausente)';
+            }
+        } catch (e) {
+            missing.push('Authorization');
+            headers['Authorization'] = '(ausente)';
+        }
+    } else if (state.token) {
+        activeToken = state.token;
         headers['Authorization'] = `Bearer ${state.token.substring(0, 30)}...`;
+    } else {
+        missing.push('Authorization');
+        headers['Authorization'] = '(ausente)';
     }
 
     const realHeaders = { 'Accept': 'application/json' };
-    if (state.token) realHeaders['Authorization'] = `Bearer ${state.token}`;
+    if (activeToken) realHeaders['Authorization'] = `Bearer ${activeToken}`;
 
-    const note = state.testMode === 'without'
-        ? `Modo sin control: se intenta acceder a la orden #${orderId} con permisos no autorizados. La policy debe responder 403.`
+    const note = isWithoutControl
+        ? `Modo sin control: se autentica como un usuario no propietario (${activeToken ? 'almac005' : 'sin token'}) y se intenta acceder a la orden #${orderId}. La policy debe responder 403.`
         : `Modo con control: si el usuario es propietario o administrador, la orden #${orderId} responde 200; si no, la policy rechaza con 403.`;
 
     const res  = await fetch(url, { headers: realHeaders });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({ message: 'No JSON body' }));
 
     appendToConsole(renderEntry(
         SCENARIOS.v4.label, SCENARIOS.v4.color,
@@ -1614,26 +1641,42 @@ async function runV4() {
 
 // --- V5: Rate Limiter ---
 async function runV5() {
-    const url = `${API_BASE}/security/ping`;
+    const protectedUrl = `${API_BASE}/security/ping`;
+    const publicUrl = `${API_BASE}/products?per_page=3`;
     const isProtected = state.testMode === 'with';
+    const url = isProtected ? protectedUrl : publicUrl;
     const NUM_REQS = isProtected ? 4 : 2;
 
     appendMessage('info', '🚦',
         isProtected
-            ? `Enviando ráfaga de 4 peticiones rápidas a ${url}. La 4ta debe devolver <strong>429 Too Many Requests</strong>...`
-            : `Modo sin control: enviando 2 peticiones rápidas para comprobar que aún no se activa el throttle en una validación débil.`);
+            ? `Enviando ráfaga de 4 peticiones rápidas a ${protectedUrl}. La 4ta debe devolver <strong>429 Too Many Requests</strong>...`
+            : `Modo sin control: enviando 2 peticiones rápidas a ${publicUrl} sin throttling para comprobar que no se activa el límite.`);
 
     for (let i = 1; i <= NUM_REQS; i++) {
         await new Promise(r => setTimeout(r, i === 1 ? 0 : 200));
 
         const headers = { 'Accept': 'application/json' };
-        if (state.token) headers['Authorization'] = `Bearer ${state.token.substring(0, 30)}...`;
-        headers['X-API-KEY'] = API_KEY;
-        const missing = state.token ? [] : ['Authorization'];
+        const missing = [];
+
+        if (isProtected) {
+            if (state.token) {
+                headers['Authorization'] = `Bearer ${state.token.substring(0, 30)}...`;
+            } else {
+                missing.push('Authorization');
+                headers['Authorization'] = '(ausente)';
+            }
+            headers['X-API-KEY'] = API_KEY;
+        }
 
         let res, data;
         try {
-            const r = await fetch(url, { headers: { 'Accept': 'application/json', 'X-API-KEY': API_KEY, ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}) } });
+            const requestHeaders = { 'Accept': 'application/json' };
+            if (isProtected) {
+                requestHeaders['X-API-KEY'] = API_KEY;
+                if (state.token) requestHeaders['Authorization'] = `Bearer ${state.token}`;
+            }
+
+            const r = await fetch(url, { headers: requestHeaders });
             res  = r.status;
             data = await r.json().catch(() => ({ message: 'No JSON body' }));
         } catch(e) {
@@ -1646,7 +1689,7 @@ async function runV5() {
             ? (i < NUM_REQS
                 ? `Petición ${i}: dentro del límite (${i}/3 por minuto).`
                 : `⚠️ Petición ${i}: superó el límite de 3 req/min → Rate Limiter activado.`)
-            : `Prueba sin control: se ejecutaron ${i} peticiones rápidas para observar el comportamiento sin la protección.`;
+            : `Prueba sin control: el endpoint público responde 200 en ráfaga sin activar throttle.`;
 
         appendToConsole(renderEntry(
             scenarioLabel, SCENARIOS.v5.color,
