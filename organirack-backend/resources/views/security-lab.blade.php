@@ -1314,7 +1314,7 @@ const SCENARIOS = {
     v2: {
         label: 'V2 API Key',
         color: '#ffc845',
-        description: 'Accede a <code>GET /api/security/status</code> con el header <code>X-API-KEY</code>. La prueba válida compara un valor ausente vs. uno correcto.',
+        description: 'Accede a <code>GET /api/security/app-check</code> con el header <code>X-API-KEY</code>. La prueba válida compara un valor ausente vs. uno correcto.',
         before: 'Sin X-API-KEY: 401 con “Acceso denegado”.',
         after: 'Con X-API-KEY válido: 200 y acceso autorizado.',
         hasApiKeyToggle: true,
@@ -1323,25 +1323,25 @@ const SCENARIOS = {
     v3: {
         label: 'V3 Sanctum (JWT)',
         color: '#00e88a',
-        description: 'Accede a <code>GET /api/security/status</code> con Bearer Token de Sanctum + API Key. Valida autenticación stateless.',
+        description: 'Accede a <code>GET /api/security/me</code> con Bearer Token de Sanctum + API Key. Valida autenticación stateless.',
         before: 'Sin token: 401 de autenticación.',
         after: 'Con token válido + API Key: 200 OK y usuario autenticado.',
         hasProtectedToken: true,
     },
     v4: {
-        label: 'V4 BOLA/IDOR',
+        label: 'V4 BOLA/IDOR y Roles',
         color: '#ff4560',
-        description: 'Accede a <code>GET /api/orders/{id}</code>. El usuario debe ver solo sus órdenes o las permitidas por roles privilegiados.',
-        before: 'Sin política de autorización: un usuario podría consultar una orden ajena.',
-        after: 'Con policy + roles: usuario ajeno recibe 403, propietario/admin recibe 200.',
+        description: 'Demuestra la diferencia entre un Almacenista intentando ver/romper una orden ajena y un delete de producto sin permisos. Usa <code>/api/security/orders/{id}?control=on|off</code> y <code>/api/security/products/{id}?control=on|off</code>.',
+        before: 'Sin política: un usuario puede ver/alterar recursos ajenos.',
+        after: 'Con policy + roles: usuario ajeno o rol no autorizado recibe 403.',
         hasOrderId: true,
         hasProtectedToken: true,
     },
     v5: {
         label: 'V5 Rate Limiter',
         color: '#ff8c42',
-        description: 'Compara un endpoint público sin throttle contra <code>GET /api/security/ping</code> con throttle:3,1.',
-        before: 'Sin control: un atacante puede repetir peticiones en un endpoint público y no recibe 429.',
+        description: 'Lanza 4 peticiones pesadas a <code>GET /api/security/heavy-products?control=on|off</code>. El peligro real es agotar MySQL con consultas pesadas.',
+        before: 'Sin control: las 4 consultas pesadas pasan y se demuestra la saturación.',
         after: 'Con throttle:3,1 la 4ta petición devuelve 429 Too Many Attempts.',
         hasBurst: true,
         hasProtectedToken: true,
@@ -1508,192 +1508,173 @@ async function runV1() {
 
 // --- V2: API Key ---
 async function runV2() {
-    const url = `${API_BASE}/security/status`;
-    const apiKeyOn = state.testMode === 'with' ? true : document.getElementById('apikey-toggle')?.classList.contains('on') ?? true;
-
-    const headers = { 'Accept': 'application/json' };
-    const missing = [];
-
-    if (!state.token) {
-        headers['Authorization'] = '(ausente)';
-        missing.push('Authorization');
-    } else {
-        headers['Authorization'] = `Bearer ${state.token.substring(0, 30)}...`;
-    }
-
-    if (apiKeyOn) {
-        headers['X-API-KEY'] = API_KEY;
-    } else {
-        missing.push('X-API-KEY');
-    }
-
+    const url = `${API_BASE}/security/app-check`;
+    const useApiKey = document.getElementById('toggle-apikey')?.classList.contains('on') ?? true;
     const realHeaders = { 'Accept': 'application/json' };
-    if (state.token) realHeaders['Authorization'] = `Bearer ${state.token}`;
-    if (apiKeyOn) realHeaders['X-API-KEY'] = API_KEY;
+    const displayHeaders = { 'Accept': 'application/json' };
 
-    const note = apiKeyOn
-        ? `Modo: ${state.testMode === 'with' ? 'Con control activo' : 'Con X-API-KEY válido'} — la petición debe responder 200.`
-        : 'Modo: sin control — X-API-KEY omitido intencionalmente para demostrar el rechazo del middleware.';
+    if (useApiKey) {
+        realHeaders['X-API-KEY'] = API_KEY;
+        displayHeaders['X-API-KEY'] = `${API_KEY.substring(0, 12)}...`;
+    } else {
+        displayHeaders['X-API-KEY'] = '❌ (Omitido)';
+    }
 
-    const res  = await fetch(url, { headers: realHeaders });
+    const res = await fetch(url, { headers: realHeaders });
     const data = await res.json();
+    const note = res.status === 200
+        ? '✅ X-API-KEY válida: el servidor reconoce que la petición viene de la aplicación oficial.'
+        : '❌ Sin X-API-KEY: el middleware rechaza la petición con 401.';
 
     appendToConsole(renderEntry(
         SCENARIOS.v2.label, SCENARIOS.v2.color,
-        'GET', url, headers, missing, res.status, data, note
+        'GET', url, displayHeaders, [], res.status, data, note
     ));
 }
 
 // --- V3: Sanctum JWT ---
 async function runV3() {
-    const url = `${API_BASE}/security/status`;
-    const headers = { 'Accept': 'application/json' };
-    const missing = [];
-
-    const withToken = state.testMode === 'with';
-
-    if (withToken && state.token) {
-        headers['Authorization'] = `Bearer ${state.token.substring(0, 30)}...`;
-    } else {
-        missing.push('Authorization');
-        headers['Authorization'] = '(ausente — inicia sesión primero o activa la prueba sin control)';
-    }
-
-    if (state.testMode === 'with') {
-        headers['X-API-KEY'] = API_KEY;
-    } else {
-        missing.push('X-API-KEY');
-    }
-
+    const url = `${API_BASE}/security/me`;
+    const useApiKey = document.getElementById('toggle-apikey')?.classList.contains('on') ?? true;
+    const useToken = document.getElementById('toggle-token')?.classList.contains('on') ?? true;
     const realHeaders = { 'Accept': 'application/json' };
-    if (withToken && state.token) realHeaders['Authorization'] = `Bearer ${state.token}`;
-    if (state.testMode === 'with') realHeaders['X-API-KEY'] = API_KEY;
+    const displayHeaders = { 'Accept': 'application/json' };
 
-    const note = state.testMode === 'with'
-        ? 'Modo con control: Bearer Token de Sanctum + API Key enviados. Demuestra autenticación stateless equivalente a JWT.'
-        : 'Modo sin control: se omite el token para demostrar el rechazo de Sanctum.';
+    if (useApiKey) {
+        realHeaders['X-API-KEY'] = API_KEY;
+        displayHeaders['X-API-KEY'] = `${API_KEY.substring(0, 12)}...`;
+    } else {
+        displayHeaders['X-API-KEY'] = '❌ (Omitido)';
+    }
 
-    const res  = await fetch(url, { headers: realHeaders });
+    if (useToken && state.token) {
+        realHeaders['Authorization'] = `Bearer ${state.token}`;
+        displayHeaders['Authorization'] = `Bearer ${state.token.substring(0, 18)}...`;
+    } else {
+        displayHeaders['Authorization'] = '❌ (Omitido)';
+    }
+
+    const res = await fetch(url, { headers: realHeaders });
     const data = await res.json();
+    const note = res.status === 200
+        ? `✅ Token Sanctum válido: el servidor identifica al usuario y sus roles.`
+        : '❌ Sin Bearer Token: aunque la app tenga la API Key, el servidor no sabe qué empleado está haciendo la petición.';
 
     appendToConsole(renderEntry(
         SCENARIOS.v3.label, SCENARIOS.v3.color,
-        'GET', url, headers, missing, res.status, data, note
+        'GET', url, displayHeaders, [], res.status, data, note
     ));
 }
 
-// --- V4: BOLA/IDOR ---
+// --- V4: BOLA/IDOR + RBAC ---
 async function runV4() {
-    const orderId = document.getElementById('order-id-input')?.value ?? '1';
-    const url = `${API_BASE}/orders/${orderId}`;
-    const isWithoutControl = state.testMode === 'without';
-    const headers = { 'Accept': 'application/json' };
-    const missing = [];
-
-    let activeToken = state.token;
-
-    if (isWithoutControl && !state.token) {
-        missing.push('Authorization');
-        headers['Authorization'] = '(ausente)';
-    } else if (isWithoutControl) {
-        try {
-            const loginResponse = await fetch(`${API_BASE}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ username: 'almac005', password: 'password' })
-            });
-
-            const loginData = await loginResponse.json();
-            if (loginResponse.ok && loginData.data?.token) {
-                activeToken = loginData.data.token;
-                headers['Authorization'] = `Bearer ${activeToken.substring(0, 30)}...`;
-            } else {
-                missing.push('Authorization');
-                headers['Authorization'] = '(ausente)';
-            }
-        } catch (e) {
-            missing.push('Authorization');
-            headers['Authorization'] = '(ausente)';
+    if (!state.token) {
+        const loginRes = await fetch(`${API_BASE}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ username: 'almacenista1', password: 'password' })
+        });
+        const loginData = await loginRes.json();
+        if (!loginRes.ok || !loginData.token) {
+            appendToConsole(renderEntry(
+                SCENARIOS.v4.label, SCENARIOS.v4.color,
+                'POST', `${API_BASE}/login`, { 'Content-Type': 'application/json' }, [], 401, { message: 'No se pudo autenticar al almacén de prueba.' },
+                'No se pudo hacer login del usuario de prueba para la demo.'
+            ));
+            return;
         }
-    } else if (state.token) {
-        activeToken = state.token;
-        headers['Authorization'] = `Bearer ${state.token.substring(0, 30)}...`;
-    } else {
-        missing.push('Authorization');
-        headers['Authorization'] = '(ausente)';
+        state.token = loginData.token;
     }
 
-    const realHeaders = { 'Accept': 'application/json' };
-    if (activeToken) realHeaders['Authorization'] = `Bearer ${activeToken}`;
+    const actionType = document.getElementById('v4-action-type')?.value ?? 'order';
+    const resourceId = document.getElementById('input-resource-id')?.value ?? '1';
+    const controlOn = document.getElementById('toggle-policy')?.classList.contains('on') ?? true;
+    const realHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token}` };
+    const displayHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token.substring(0, 18)}...` };
 
-    const note = isWithoutControl
-        ? `Modo sin control: se autentica como un usuario no propietario (${activeToken ? 'almac005' : 'sin token'}) y se intenta acceder a la orden #${orderId}. La policy debe responder 403.`
-        : `Modo con control: si el usuario es propietario o administrador, la orden #${orderId} responde 200; si no, la policy rechaza con 403.`;
+    let url;
+    let method = 'GET';
+    let res;
+    let data;
 
-    const res  = await fetch(url, { headers: realHeaders });
-    const data = await res.json().catch(() => ({ message: 'No JSON body' }));
+    if (actionType === 'order') {
+        url = `${API_BASE}/security/orders/${resourceId}?control=${controlOn ? 'on' : 'off'}`;
+        res = await fetch(url, { headers: realHeaders });
+        data = await res.json();
+
+        const note = res.status === 403
+            ? `🛡️ PROTECCIÓN BOLA/IDOR ACTIVA: el usuario intentó abrir la Orden #${resourceId} sin ser dueño y el servidor lo bloqueó.`
+            : controlOn
+                ? `✅ Control activo: el usuario es administrador o dueño de la orden y el servidor acepta la operación.`
+                : `⚠️ Sin control: el servidor entregó la orden ajena sin validar pertenencia.`;
+
+        appendToConsole(renderEntry(
+            SCENARIOS.v4.label, SCENARIOS.v4.color,
+            method, url, displayHeaders, [], res.status, data, note
+        ));
+        return;
+    }
+
+    url = `${API_BASE}/security/products/${resourceId}?control=${controlOn ? 'on' : 'off'}`;
+    method = 'DELETE';
+    res = await fetch(url, { method: 'DELETE', headers: realHeaders });
+    data = await res.json();
+
+    const note = res.status === 403
+        ? `🛡️ RBAC ACTIVO: un Almacenista NO puede borrar productos del catálogo y el servidor responde 403.`
+        : controlOn
+            ? `✅ El administrador puede realizar la acción simulada.`
+            : `⚠️ Sin control: un Almacenista pudo ejecutar DELETE sobre el producto sin validar permisos.`;
 
     appendToConsole(renderEntry(
         SCENARIOS.v4.label, SCENARIOS.v4.color,
-        'GET', url, headers, missing, res.status, data, note
+        method, url, displayHeaders, [], res.status, data, note
     ));
 }
 
-// --- V5: Rate Limiter ---
+// --- V5: Rate Limiter en catálogo pesado ---
 async function runV5() {
-    const protectedUrl = `${API_BASE}/security/ping`;
-    const publicUrl = `${API_BASE}/products?per_page=3`;
-    const isProtected = state.testMode === 'with';
-    const url = isProtected ? protectedUrl : publicUrl;
-    const NUM_REQS = isProtected ? 4 : 2;
-
-    appendMessage('info', '🚦',
-        isProtected
-            ? `Enviando ráfaga de 4 peticiones rápidas a ${protectedUrl}. La 4ta debe devolver <strong>429 Too Many Requests</strong>...`
-            : `Modo sin control: enviando 2 peticiones rápidas a ${publicUrl} sin throttling para comprobar que no se activa el límite.`);
-
-    for (let i = 1; i <= NUM_REQS; i++) {
-        await new Promise(r => setTimeout(r, i === 1 ? 0 : 200));
-
-        const headers = { 'Accept': 'application/json' };
-        const missing = [];
-
-        if (isProtected) {
-            if (state.token) {
-                headers['Authorization'] = `Bearer ${state.token.substring(0, 30)}...`;
-            } else {
-                missing.push('Authorization');
-                headers['Authorization'] = '(ausente)';
-            }
-            headers['X-API-KEY'] = API_KEY;
+    if (!state.token) {
+        const loginRes = await fetch(`${API_BASE}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ username: 'almacenista1', password: 'password' })
+        });
+        const loginData = await loginRes.json();
+        if (!loginRes.ok || !loginData.token) {
+            appendToConsole(renderEntry(
+                SCENARIOS.v5.label, SCENARIOS.v5.color,
+                'POST', `${API_BASE}/login`, { 'Content-Type': 'application/json' }, [], 401, { message: 'No se pudo autenticar al usuario de prueba.' },
+                'No se pudo autenticar el usuario para la ráfaga de prueba.'
+            ));
+            return;
         }
+        state.token = loginData.token;
+    }
 
-        let res, data;
-        try {
-            const requestHeaders = { 'Accept': 'application/json' };
-            if (isProtected) {
-                requestHeaders['X-API-KEY'] = API_KEY;
-                if (state.token) requestHeaders['Authorization'] = `Bearer ${state.token}`;
-            }
+    const throttleOn = document.getElementById('toggle-throttle')?.classList.contains('on') ?? true;
+    const useApiKey = document.getElementById('toggle-apikey')?.classList.contains('on') ?? true;
+    const url = `${API_BASE}/security/heavy-products?control=${throttleOn ? 'on' : 'off'}`;
+    const realHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token}` };
+    const displayHeaders = { 'Accept': 'application/json', 'Authorization': `Bearer ${state.token.substring(0, 18)}...` };
 
-            const r = await fetch(url, { headers: requestHeaders });
-            res  = r.status;
-            data = await r.json().catch(() => ({ message: 'No JSON body' }));
-        } catch(e) {
-            res  = 0;
-            data = { error: e.message };
-        }
+    if (useApiKey) {
+        realHeaders['X-API-KEY'] = API_KEY;
+        displayHeaders['X-API-KEY'] = `${API_KEY.substring(0, 12)}...`;
+    }
 
-        const scenarioLabel = `${SCENARIOS.v5.label} — Req ${i}/${NUM_REQS}`;
-        const note = isProtected
-            ? (i < NUM_REQS
-                ? `Petición ${i}: dentro del límite (${i}/3 por minuto).`
-                : `⚠️ Petición ${i}: superó el límite de 3 req/min → Rate Limiter activado.`)
-            : `Prueba sin control: el endpoint público responde 200 en ráfaga sin activar throttle.`;
+    for (let i = 1; i <= 4; i++) {
+        const res = await fetch(url, { headers: realHeaders });
+        const data = await res.json();
+        const note = res.status === 429
+            ? `🛑 PETICIÓN #${i}/4 BLOQUEADA: el Rate Limiter cortó la ráfaga con 429 Too Many Requests.`
+            : throttleOn
+                ? `✅ PETICIÓN #${i}/4 permitida dentro del límite de 3 req/min.`
+                : `⚠️ PETICIÓN #${i}/4 sin throttle: la consulta pesada pasó aunque la ráfaga no estaba controlada.`;
 
         appendToConsole(renderEntry(
-            scenarioLabel, SCENARIOS.v5.color,
-            'GET', url, headers, missing, res, data, note
+            `${SCENARIOS.v5.label} — Req ${i}/4`, SCENARIOS.v5.color,
+            'GET', url, displayHeaders, [], res.status, data, note
         ));
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\AuthController;
@@ -268,33 +269,144 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 /**
- * SECURITY TEST ROUTES (Puntos 1 y 2 de la rúbrica de seguridad)
+ * SECURITY LAB ROUTES (Demostración interactiva de seguridad)
  *
- * Agrupa los endpoints de prueba bajo:
- *  - auth:sanctum  → requiere token Sanctum válido
- *  - api.key       → valida el header X-API-KEY (ApiKeyMiddleware)
- *  - throttle:3,1  → máximo 3 peticiones por minuto (Rate Limiter anti-fuerza bruta)
- *
- * Uso de prueba:
- *   GET /api/security/status  → Headers: Authorization: Bearer {token}, X-API-KEY: organirack_secreto_123
- *   GET /api/security/ping    → Headers: Authorization: Bearer {token}, X-API-KEY: organirack_secreto_123
+ * V2: API Key de la aplicación
+ * V3: Sanctum / JWT del usuario
+ * V4: BOLA / IDOR y RBAC por roles
+ * V5: Rate limiting real sobre consulta pesada de productos
  */
+Route::middleware(['api.key'])->get('/security/app-check', function () {
+    return response()->json([
+        'status'  => 'ok',
+        'layer'   => 'API Key Middleware',
+        'message' => 'Dispositivo / Aplicación autorizada mediante X-API-KEY.',
+        'app'     => config('app.name'),
+    ]);
+})->name('security.app-check');
+
+Route::middleware(['auth:sanctum', 'api.key'])->get('/security/me', function (Request $request) {
+    $user = $request->user();
+
+    return response()->json([
+        'status' => 'authenticated',
+        'layer' => 'Laravel Sanctum (equivalente JWT stateless)',
+        'message' => 'Identidad del usuario verificada mediante Bearer Token.',
+        'user_profile' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(),
+        ],
+        'token_info' => [
+            'token_id' => $user->currentAccessToken()?->id,
+            'token_name' => $user->currentAccessToken()?->name,
+            'abilities' => $user->currentAccessToken()?->abilities,
+        ],
+    ]);
+})->name('security.me');
+
+Route::middleware(['auth:sanctum'])->get('/security/orders/{order}', function (Request $request, \App\Models\OrdenSurtido $order) {
+    $user = $request->user();
+    $controlActivo = $request->query('control', 'on') === 'on';
+
+    $order->load(['capturista:id,name,email', 'almacenista:id,name,email', 'estado', 'prioridad']);
+
+    if ($controlActivo) {
+        $esAdmin = $user->hasRole(['Administrador', 'Gerencia de Operaciones']);
+        $esPropietario = $user->id === $order->capturista_id || $user->id === $order->almacenista_id;
+
+        if (! $esAdmin && ! $esPropietario) {
+            return response()->json([
+                'error' => '403 Forbidden — Protección BOLA / IDOR Activa (OrdenSurtidoPolicy)',
+                'message' => "Acceso bloqueado: Intentaste acceder a la Orden #{$order->id} ({$order->folio}), pero no te pertenece.",
+                'tu_usuario' => "{$user->name} (ID: {$user->id}, Rol: " . $user->getRoleNames()->implode(', ') . ')',
+                'dueno_real' => "Capturista ID: {$order->capturista_id} ({$order->capturista?->name}) / Almacenista asignado ID: {$order->almacenista_id} ({$order->almacenista?->name})",
+            ], 403);
+        }
+    }
+
+    return response()->json([
+        'warning' => $controlActivo
+            ? '✅ Acceso legítimo: eres el propietario o tienes un rol administrativo.'
+            : '⚠️ VULNERABILIDAD BOLA/IDOR EXPLOTADA: la policy se desactivó y el servidor entregó una orden ajena.',
+        'tu_usuario' => "{$user->name} (ID: {$user->id})",
+        'data' => $order,
+    ]);
+})->name('security.orders.show');
+
+Route::middleware(['auth:sanctum'])->delete('/security/products/{id}', function (Request $request, int $id) {
+    $user = $request->user();
+    $controlActivo = $request->query('control', 'on') === 'on';
+    $producto = \App\Models\Producto::findOrFail($id);
+
+    if ($controlActivo) {
+        if (! $user->hasRole(['Administrador', 'Gerencia de Operaciones'])) {
+            return response()->json([
+                'error' => '403 Forbidden — Acción No Autorizada para tu Rol',
+                'message' => "El usuario '{$user->name}' tiene rol de Almacenista y NO tiene permiso para eliminar productos del catálogo.",
+                'accion' => "Intento de DELETE sobre Producto #{$producto->id} ({$producto->nombre})",
+                'rol_actual' => $user->getRoleNames(),
+            ], 403);
+        }
+    }
+
+    return response()->json([
+        'warning' => $controlActivo
+            ? '✅ Eliminación autorizada por Rol Administrador (simulada para no vaciar la BD).'
+            : '⚠️ VULNERABILIDAD EXPLOTADA: sin validación de Policy/Rol, un Almacenista pudo ejecutar DELETE sobre un producto del catálogo.',
+        'producto_afectado' => [
+            'id' => $producto->id,
+            'sku' => $producto->sku,
+            'nombre' => $producto->nombre,
+        ],
+    ]);
+})->name('security.products.delete');
+
+Route::middleware(['auth:sanctum', 'api.key'])->get('/security/heavy-products', function (Request $request) {
+    $controlActivo = $request->query('control', 'on') === 'on';
+
+    if ($controlActivo) {
+        $key = 'heavy-catalog:' . ($request->user()?->id ?: $request->ip());
+
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
+            return response()->json([
+                'error' => '429 Too Many Requests — Rate Limiter Activo (throttle:3,1)',
+                'message' => 'Se detectó una ráfaga de peticiones sobre el catálogo pesado de productos. Petición bloqueada para proteger MySQL.',
+                'retry_after' => "$seconds segundos",
+            ], 429);
+        }
+
+        RateLimiter::hit($key, 60);
+    }
+
+    $productos = \App\Models\Producto::with(['categoria', 'marca', 'unidadMedida'])->paginate(10);
+
+    return response()->json([
+        'status' => 'ok',
+        'protection' => $controlActivo ? 'Rate Limiter ACTIVO (máx. 3 req/min)' : 'SIN Rate Limiter (servidor expuesto a saturación)',
+        'message' => 'Catálogo pesado de productos cargado desde MySQL.',
+        'total_items_in_db' => $productos->total(),
+        'sample_data' => collect($productos->items())->take(2),
+    ]);
+})->name('security.heavy-products');
+
 Route::prefix('security')
     ->middleware(['auth:sanctum', 'api.key', 'throttle:3,1'])
     ->group(function () {
-        // Punto 1: Verifica que el middleware ApiKeyMiddleware esté activo
         Route::get('/status', function () {
             return response()->json([
-                'status'  => 'ok',
+                'status' => 'ok',
                 'message' => 'API Key válida. Acceso autorizado.',
-                'user'    => auth()->user()?->name,
+                'user' => auth()->user()?->name,
             ]);
         })->name('security.status');
 
-        // Punto 2: Verifica el Rate Limiter (throttle:3,1 → máx. 3 req/min)
         Route::get('/ping', function () {
             return response()->json([
-                'pong'    => true,
+                'pong' => true,
                 'message' => 'Rate limiter activo. Máximo 3 peticiones por minuto.',
             ]);
         })->name('security.ping');
