@@ -736,7 +736,7 @@
         }
 
         // V5 ACTUALIZADO CON CONTROL DINÁMICO DE PETICIONES
-        async function runV5() {
+async function runV5() {
             if (!state.token) {
                 await fillUser('almacenista1@organirack.com', 'password');
             }
@@ -744,21 +744,37 @@
             const url = `${API_BASE}/security/heavy-products?control=${throttleOn}`;
             const { real, display } = buildHeaders(isOn('toggle-apikey'), isOn('toggle-token'));
 
-            // Lee el número de peticiones que escogiste en la UI
             const totalRequests = parseInt(document.getElementById('input-burst-count').value) || 4;
+            let blockedCount = 0;
+            let passedCount = 0;
+            let lastBlockedData = null;
 
             for (let i = 1; i <= totalRequests; i++) {
                 const res = await fetch(url, { headers: real });
                 const data = await res.json();
-                let note = '';
+                
                 if (res.status === 429) {
-                    note = `🛑 PETICIÓN #${i}/${totalRequests} BLOQUEADA (429 Too Many Requests): El Rate Limiter detuvo el ataque de fuerza bruta.`;
-                } else if (throttleOn === 'off') {
-                    note = `⚠️ Petición #${i}/${totalRequests} sin Rate Limiter: La consulta pesada a MySQL se ejecutó sin límite (riesgo de caída por DoS).`;
+                    blockedCount++;
+                    if (blockedCount === 1) lastBlockedData = data; // Guardamos el primer error para mostrar el JSON
                 } else {
-                    note = `✅ Petición #${i}/${totalRequests} permitida (${i}/3 dentro del límite por minuto).`;
+                    passedCount++;
+                    // Mostramos individualmente solo las primeras 3 para no saturar la UI
+                    if (i <= 3) {
+                        let note = throttleOn === 'off' 
+                            ? `⚠️ Petición #${i} sin Rate Limiter: Consulta pesada a MySQL ejecutada sin freno.`
+                            : `✅ Petición #${i} permitida (dentro del límite de 3 req/min).`;
+                        logCard(`V5 Rate Limiter [Req #${i}]`, 'GET', url, display, res.status, data, note, throttleOn === 'off');
+                    }
                 }
-                logCard(`V5 Rate Limiter en Catálogo Pesado [Req #${i}/${totalRequests}]`, 'GET', url, display, res.status, data, note, throttleOn === 'off' && i > 3);
+            }
+
+            // Tarjeta de resumen final
+            if (blockedCount > 0) {
+                let note = `🛑 RÁFAGA DETENIDA: ${blockedCount} peticiones de ${totalRequests} fueron BLOQUEADAS en seco por el Rate Limiter.`;
+                logCard(`V5 Rate Limiter [Resumen de Bloqueos]`, 'GET', url, display, 429, lastBlockedData, note, false);
+            } else if (passedCount > 3) {
+                let note = `⚠️ ALERTA DoS: Las ${totalRequests} peticiones entraron de golpe al servidor y saturaron MySQL porque el control estaba apagado.`;
+                logCard(`V5 Rate Limiter [Resumen de Impacto]`, 'GET', url, display, 200, { alerta: "Catálogo consultado masivamente" }, note, true);
             }
         }
 
