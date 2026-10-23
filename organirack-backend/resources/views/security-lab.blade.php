@@ -471,6 +471,68 @@
             font-size: 11.5px;
         }
 
+        .state-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .state-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 10px 8px;
+            min-height: 110px;
+        }
+
+        .state-card.vulnerable {
+            border-color: rgba(255, 69, 96, 0.35);
+            background: rgba(255, 69, 96, 0.04);
+        }
+
+        .state-card.protected {
+            border-color: rgba(0, 232, 138, 0.35);
+            background: rgba(0, 232, 138, 0.04);
+        }
+
+        .state-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .state-tag {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 4px 7px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+        }
+
+        .state-card.vulnerable .state-tag {
+            background: rgba(255, 69, 96, 0.12);
+            color: var(--status-error);
+            border-color: rgba(255, 69, 96, 0.2);
+        }
+
+        .state-card.protected .state-tag {
+            background: rgba(0, 232, 138, 0.12);
+            color: var(--status-ok);
+            border-color: rgba(0, 232, 138, 0.2);
+        }
+
+        .state-card p {
+            margin: 0;
+            font-size: 10.5px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
         .config-row label {
             color: var(--text-muted);
             font-size: 10px;
@@ -1206,29 +1268,39 @@ const SCENARIOS = {
     v1: {
         label: 'V1 Sin Seguridad',
         color: '#8899bb',
-        description: 'Accede a <code>GET /api/products</code> sin ningún token ni API Key. Endpoint público del catálogo.',
+        description: 'Accede a <code>GET /api/products</code> sin token ni API Key. Este es el estado vulnerable: cualquier cliente puede consultar catálogo público.',
+        before: 'Sin protección: el endpoint responde con 200 sin autenticar.',
+        after: 'Estado protegido: se mantiene público solo para lectura de catálogo, sin datos sensibles ni operaciones críticas.',
     },
     v2: {
         label: 'V2 API Key',
         color: '#ffc845',
-        description: 'Accede a <code>GET /api/security/status</code> con el header <code>X-API-KEY</code>.',
+        description: 'Accede a <code>GET /api/security/status</code> con el header <code>X-API-KEY</code>. La prueba válida compara un valor ausente vs. uno correcto.',
+        before: 'Sin X-API-KEY: 401 con “Acceso denegado”.',
+        after: 'Con X-API-KEY válido: 200 y acceso autorizado.',
         hasApiKeyToggle: true,
     },
     v3: {
         label: 'V3 Sanctum (JWT)',
         color: '#00e88a',
-        description: 'Accede a <code>GET /api/security/status</code> con Bearer Token de Sanctum + API Key.',
+        description: 'Accede a <code>GET /api/security/status</code> con Bearer Token de Sanctum + API Key. Valida autenticación stateless.',
+        before: 'Sin token: 401 de autenticación.',
+        after: 'Con token válido + API Key: 200 OK y usuario autenticado.',
     },
     v4: {
         label: 'V4 BOLA/IDOR',
         color: '#ff4560',
-        description: 'Accede a <code>GET /api/orders/{id}</code>. Si el recurso no te pertenece → 403.',
+        description: 'Accede a <code>GET /api/orders/{id}</code>. El usuario debe ver solo sus órdenes o las permitidas por roles privilegiados.',
+        before: 'Sin política de autorización: un usuario podría consultar una orden ajena.',
+        after: 'Con policy + roles: usuario ajeno recibe 403, propietario/admin recibe 200.',
         hasOrderId: true,
     },
     v5: {
         label: 'V5 Rate Limiter',
         color: '#ff8c42',
-        description: 'Envía 4 peticiones rápidas a <code>GET /api/security/ping</code>. La 4ª devuelve 429.',
+        description: 'Envía 4 peticiones rápidas a <code>GET /api/security/ping</code>. El valor de la cuota es 3 req/minuto.',
+        before: 'Sin throttle: un atacante puede hacer ráfagas ilimitadas.',
+        after: 'Con throttle:3,1 la 4ta petición devuelve 429 Too Many Attempts.',
         hasBurst: true,
     },
 };
@@ -1254,7 +1326,25 @@ function selectScenario(v) {
     summaryBadge.textContent = v.toUpperCase();
     summaryText.textContent = sc.description.replace(/<[^>]+>/g, '');
 
-    let configHTML = `<div class="console-msg info" style="margin-bottom:10px;font-size:11px;">${sc.description}</div>`;
+    let configHTML = `
+        <div class="console-msg info" style="margin-bottom:10px;font-size:11px;">${sc.description}</div>
+        <div class="state-grid">
+            <div class="state-card vulnerable">
+                <div class="state-head">
+                    <span class="state-tag">Antes</span>
+                    <span class="tiny-badge">Vulnerable</span>
+                </div>
+                <p>${sc.before}</p>
+            </div>
+            <div class="state-card protected">
+                <div class="state-head">
+                    <span class="state-tag">Ahora</span>
+                    <span class="tiny-badge">Protegido</span>
+                </div>
+                <p>${sc.after}</p>
+            </div>
+        </div>
+    `;
 
     // API Key toggle
     if (sc.hasApiKeyToggle) {
