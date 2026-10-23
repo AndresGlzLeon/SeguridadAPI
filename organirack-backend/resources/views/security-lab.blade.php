@@ -357,7 +357,7 @@
         <div class="brand">
             <div class="logo-box">🔒</div>
             <h1>OrganiRack+</h1>
-            <span class="badge-version">Security Lab v2.2</span>
+            <span class="badge-version">Security Lab v2.3</span>
         </div>
 
         <nav class="scenarios-nav">
@@ -466,6 +466,14 @@
                             </div>
                             <button class="switch on" id="toggle-throttle" onclick="toggleSwitch(this)"></button>
                         </div>
+                        <!-- NUEVO CONTROL: Número de peticiones en ráfaga -->
+                        <div class="control-row">
+                            <div>
+                                <div class="control-label">NÚMERO DE PETICIONES (RÁFAGA)</div>
+                                <div class="control-val">Define cuántas consultas lanzar</div>
+                            </div>
+                            <input type="number" id="input-burst-count" class="order-input" value="4" min="1" max="50" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -505,7 +513,7 @@
             v2: 'API Key identifica que la petición viene de la App oficial (Nivel Dispositivo), sin importar qué usuario esté logueado.',
             v3: 'Sanctum (JWT) identifica QUÉ EMPLEADO está haciendo la petición mediante su Bearer Token personal y devuelve su perfil y rol.',
             v4: 'Demuestra qué pasa cuando un Almacenista intenta abrir una Orden que NO le pertenece (IDOR) o borrar un Producto del catálogo.',
-            v5: 'Lanza 4 consultas pesadas seguidas al catálogo de Productos para intentar saturar MySQL y prueba cómo el Rate Limiter bloquea la 4ª petición.'
+            v5: 'Lanza múltiples consultas pesadas seguidas al catálogo de Productos para intentar saturar MySQL y prueba cómo el Rate Limiter las bloquea.'
         };
 
         function fillUser(email, pass) {
@@ -514,7 +522,6 @@
             doLogin();
         }
 
-        // --- CORRECCIÓN CRÍTICA DE LOS SWITCHES ---
         function toggleSwitch(btn) { 
             if (btn.classList.contains('on')) {
                 btn.classList.remove('on');
@@ -536,7 +543,6 @@
         function isOn(id) { 
             return document.getElementById(id)?.classList.contains('on') ?? false; 
         }
-        // ------------------------------------------
 
         function selectScenario(key) {
             state.scenario = key;
@@ -729,6 +735,7 @@
             }
         }
 
+        // V5 ACTUALIZADO CON CONTROL DINÁMICO DE PETICIONES
         async function runV5() {
             if (!state.token) {
                 await fillUser('almacenista1@organirack.com', 'password');
@@ -737,18 +744,21 @@
             const url = `${API_BASE}/security/heavy-products?control=${throttleOn}`;
             const { real, display } = buildHeaders(isOn('toggle-apikey'), isOn('toggle-token'));
 
-            for (let i = 1; i <= 4; i++) {
+            // Lee el número de peticiones que escogiste en la UI
+            const totalRequests = parseInt(document.getElementById('input-burst-count').value) || 4;
+
+            for (let i = 1; i <= totalRequests; i++) {
                 const res = await fetch(url, { headers: real });
                 const data = await res.json();
                 let note = '';
                 if (res.status === 429) {
-                    note = `🛑 PETICIÓN #${i}/4 BLOQUEADA (429 Too Many Requests): El Rate Limiter detuvo el ataque de fuerza bruta sobre el catálogo de productos.`;
+                    note = `🛑 PETICIÓN #${i}/${totalRequests} BLOQUEADA (429 Too Many Requests): El Rate Limiter detuvo el ataque de fuerza bruta.`;
                 } else if (throttleOn === 'off') {
-                    note = `⚠️ Petición #${i}/4 sin Rate Limiter: La consulta pesada a MySQL se ejecutó sin límite (riesgo de caída por DoS).`;
+                    note = `⚠️ Petición #${i}/${totalRequests} sin Rate Limiter: La consulta pesada a MySQL se ejecutó sin límite (riesgo de caída por DoS).`;
                 } else {
-                    note = `✅ Petición #${i}/4 permitida (${i}/3 dentro del límite por minuto).`;
+                    note = `✅ Petición #${i}/${totalRequests} permitida (${i}/3 dentro del límite por minuto).`;
                 }
-                logCard(`V5 Rate Limiter en Catálogo Pesado [Req #${i}/4]`, 'GET', url, display, res.status, data, note, throttleOn === 'off' && i === 4);
+                logCard(`V5 Rate Limiter en Catálogo Pesado [Req #${i}/${totalRequests}]`, 'GET', url, display, res.status, data, note, throttleOn === 'off' && i > 3);
             }
         }
 
