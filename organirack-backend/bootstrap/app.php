@@ -15,7 +15,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // CORS middleware for ngrok and cross-origin requests
         $middleware->api(prepend: [
             \App\Http\Middleware\HandleCorsRequests::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
         $middleware->alias([
