@@ -23,12 +23,12 @@ class ApiKeyMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $expectedKey = config('app.api_key', 'organirack_secreto_123');
+        $expectedKey = config('app.api_key');
         $providedKey = $request->header('X-API-KEY');
 
-        if (empty($providedKey) || $providedKey !== $expectedKey) {
+        if (empty($expectedKey) || empty($providedKey) || $providedKey !== $expectedKey) {
             return response()->json([
-                'error'   => 'Acceso denegado. API Key inválida',
+                'error' => 'Acceso denegado. API Key inválida',
                 'message' => 'Debes incluir el header X-API-KEY con un valor válido.',
             ], Response::HTTP_UNAUTHORIZED);
         }
