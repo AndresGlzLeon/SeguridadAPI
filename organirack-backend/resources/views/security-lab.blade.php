@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>API Security Lab — OrganiRack+</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" />
@@ -923,9 +924,10 @@ const state = {
 };
 
 // Detecta si estamos en localhost o en un servidor real
-const BASE_URL = window.location.origin;
-const API_BASE = BASE_URL + '/api';
-const API_KEY  = 'organirack_secreto_123';
+const BASE_URL   = window.location.origin;
+const API_BASE   = BASE_URL + '/api';
+const API_KEY    = 'organirack_secreto_123';
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 // =============================================
 // UTILS
@@ -1075,7 +1077,7 @@ async function doLogin() {
     try {
         const res = await fetch(`${API_BASE}/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
             body: JSON.stringify({ email, password: pass }),
         });
 
