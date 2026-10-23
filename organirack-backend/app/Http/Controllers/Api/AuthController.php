@@ -23,16 +23,19 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        // Validar campos requeridos
+        // Validar campos requeridos: soporta tanto email como username
         $validated = $request->validate([
-            'username' => 'required|string',
+            'email' => ['nullable', 'email', 'required_without:username'],
+            'username' => ['nullable', 'string', 'required_without:email'],
             'password' => 'required|string',
         ]);
+
+        $identifier = $validated['email'] ?? $validated['username'];
 
         try {
             // Verificar credenciales - Permite todos los roles del sistema
             $user = $this->authService->verifyCredentials(
-                $validated['username'],
+                $identifier,
                 $validated['password'],
                 ['Almacenista', 'Jefe de Almacen', 'Gerencia de Operaciones', 'Capturista'] // Roles permitidos
             );
